@@ -11,6 +11,7 @@ import Movies from "./components/Movies/Movies";
 import AdminProfile from "./profile/AdminProfile";
 import UserProfile from "./profile/UserProfile";
 import { adminActions, userActions } from "./store";
+import { ToastContainer } from "react-toastify";
 
 function App() {
   const dispatch = useDispatch();
@@ -27,6 +28,7 @@ function App() {
   }, [dispatch]);
   return (
     <div>
+      <ToastContainer />
       <Header />
       <section>
         <Routes>
