@@ -14,99 +14,85 @@ import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { userActions } from "../../store/user-slice";
 import { adminActions } from "../../store/admin-slice";
+
 const Header = () => {
   const navigate = useNavigate();
-  const [selectedMovie, setSelectedMovie] = useState("");
-  const [value, setValue] = useState();
+  const [value, setValue] = useState(false);
   const [data, setData] = useState([]);
   const isUserLoggedIn = useSelector((state) => state.user.isLoggedIn);
   const isAdminLoggedIn = useSelector((state) => state.admin.isLoggedIn);
   const dispatch = useDispatch();
+
   useEffect(() => {
     getAllMovies()
       .then((data) => setData(data))
       .catch((err) => console.log(err));
   }, []);
-  console.log(data);
+
   const handleChange = (e, val) => {
-    setSelectedMovie(val);
     const movie = data.find((mov) => mov.title === val);
-    console.log(movie);
-    if (isUserLoggedIn) {
+    if (movie && isUserLoggedIn) {
       navigate(`/booking/${movie._id}`);
     }
   };
+
   return (
-    <AppBar position="sticky" sx={{ bgcolor: "#2b2d42" }}>
+    <AppBar position="sticky" sx={{ bgcolor: "#1e1f26", paddingY: 1 }}>
       <Toolbar>
-        <Box width="20%">
+        <Box flexGrow={1} display="flex" alignItems="center">
           <Link to="/" style={{ color: "white" }}>
-            <MovieCreationIcon />
+            <MovieCreationIcon fontSize="large" />
           </Link>
         </Box>
-        <Box width="50%" marginRight={"auto"} marginLeft="auto">
-          <Autocomplete
-            onChange={handleChange}
-            sx={{ borderRadius: 10, width: "40%", margin: "auto" }}
-            freeSolo
-            id="free-solo-2-demo"
-            disableClearable
-            options={data.map((option) => option.title)}  
-            renderInput={(params) => (
-              <TextField
-                sx={{
-                  borderRadius: 2,
-                  input: { color: "white" },
-                  bgcolor: "#2b2d42",
-                  padding: "6px",
-                }}
-                variant="standard"
-                placeholder="Search Across Multiple Movies"
-                {...params}
-                InputProps={{
-                  ...params.InputProps,
-                  type: "search",
-                }}
-              />
-            )}
-          />
-        </Box>
-        <Box display="flex">
+
+        <Autocomplete
+          onChange={handleChange}
+          sx={{ width: "40%", bgcolor: "white", borderRadius: 2 }}
+          freeSolo
+          options={data.map((option) => option.title)}
+          renderInput={(params) => (
+            <TextField
+              {...params}
+              placeholder="Search Movies..."
+              variant="outlined"
+              sx={{ input: { color: "black" }, padding: 1 }}
+            />
+          )}
+        />
+
+        <Box>
           <Tabs
-            onChange={(e, val) => setValue(val)}
             value={value}
+            onChange={(e, val) => setValue(val)}
             textColor="inherit"
+            indicatorColor="secondary"
+            TabIndicatorProps={{ sx: { height: 3 } }}
           >
             {!isAdminLoggedIn && !isUserLoggedIn && (
               <>
-                {" "}
-                <Tab to="/auth" LinkComponent={NavLink} label="Auth" />
-                <Tab to="/admin" LinkComponent={NavLink} label="Admin" />
+                <Tab to="/auth" component={NavLink} label="Auth" />
+                <Tab to="/admin" component={NavLink} label="Admin" />
               </>
             )}
-
             {isUserLoggedIn && (
               <>
-                {" "}
-                <Tab LinkComponent={Link} to="/user" label="user" />
+                <Tab to="/user" component={NavLink} label="User" />
                 <Tab
                   onClick={() => dispatch(userActions.logout())}
-                  LinkComponent={Link}
                   to="/"
+                  component={NavLink}
                   label="Logout"
                 />
               </>
             )}
-
             {isAdminLoggedIn && (
               <>
-                {" "}
-                <Tab LinkComponent={Link} to="/profile" label="Profile" />
-                <Tab LinkComponent={Link} to="/add" label="Add Movie" />
+                <Tab to="/profile" component={NavLink} label="Profile" />
+                <Tab to="/add" component={NavLink} label="Add Movie" />
                 <Tab
                   onClick={() => dispatch(adminActions.logout())}
-                  LinkComponent={Link}
                   to="/"
+                  component={NavLink}
                   label="Logout"
                 />
               </>
