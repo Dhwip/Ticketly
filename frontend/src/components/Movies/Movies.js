@@ -6,7 +6,6 @@ import MovieItem from "./MovieItem";
 const AllMovies = () => {
   const [movies, setMovies] = useState([]);
   const isSmallScreen = useMediaQuery("(max-width:600px)");
-  const isMediumScreen = useMediaQuery("(max-width:1024px)");
 
   useEffect(() => {
     getAllMovies()
