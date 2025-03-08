@@ -6,6 +6,7 @@ import User from "../models/User.js";
 export const newBooking = async (req, res, next) => {
   const { movie, date, seatNumber, user } = req.body;
 
+  console.log('Data of new booking',movie,date,seatNumber,user)                                                               
   let existingMovie;
   let existingUser;
   try {
