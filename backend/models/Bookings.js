@@ -9,9 +9,15 @@ const bookingSchema = new mongoose.Schema({
   date: {
     type: Date,
     required: true,
+    validate: {
+      validator: function (value) {
+        return value > new Date(); // Ensures booking date is in the future
+      },
+      message: "Booking date must be in the future",
+    },
   },
-  seatNumber: {
-    type: Number,
+  seatNumbers: {
+    type: [Number], // Array of seat numbers
     required: true,
   },
   user: {

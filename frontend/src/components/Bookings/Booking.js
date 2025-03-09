@@ -38,17 +38,30 @@ const Booking = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+
+    // Validate seat selection
     if (selectedSeats.length === 0) {
       alert("Please select at least one seat.");
       return;
     }
-    console.log('selected seats' ,selectedSeats);
-    console.log(selectedSeats.length);
-    newBooking({ seatNumber: selectedSeats.length, date: inputs.date, movie: movie._id })
+
+    // Validate date
+    const selectedDate = new Date(inputs.date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (selectedDate <= today) {
+      alert("Booking date must be in the future.");
+      return;
+    }
+
+    console.log("Selected seats:", selectedSeats);
+
+    // Send seatNumbers instead of count
+    newBooking({ seatNumbers: selectedSeats, date: inputs.date, movie: movie._id })
       .then((res) => {
         console.log(res);
-        setBookedSeats([...bookedSeats, ...selectedSeats]);
-        setSelectedSeats([]);
+        setBookedSeats([...bookedSeats, ...selectedSeats]); // Mark seats as booked
+        setSelectedSeats([]); // Reset selection
         setBookingSuccess(true); // Show success message
       })
       .catch((err) => console.log(err));
