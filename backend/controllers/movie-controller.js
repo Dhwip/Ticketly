@@ -19,7 +19,6 @@ export const addMovie = async (req, res, next) => {
     }
   });
 
-  //create new movie
   const { title, description, releaseDate, posterUrl, featured, actors } =
     req.body;
   if (

@@ -2,15 +2,16 @@ import { Box } from "@mui/system";
 import React, { useEffect, useState } from "react";
 import PersonRoundedIcon from "@mui/icons-material/PersonRounded";
 import { DeleteForeverOutlined } from "@mui/icons-material/";
-import { IconButton, List, ListItem, ListItemText, Typography } from "@mui/material";
+import { IconButton, List, ListItem, ListItemText, Typography, Dialog, DialogActions, DialogTitle, Button, CircularProgress } from "@mui/material";
 import { deleteBooking, getUserBookings } from "../../helpers/api-helpers";
-import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 const User = () => {
-  const navigate = useNavigate();
   const [bookings, setBookings] = useState([]);
+  const [deleteId, setDeleteId] = useState(null); 
+  const [loading, setLoading] = useState(false); 
+  const [openDialog, setOpenDialog] = useState(false); 
 
   useEffect(() => {
     getUserBookings()
@@ -18,8 +19,9 @@ const User = () => {
       .catch((err) => console.log(err));
   }, []);
 
-  const handleDelete = (id) => {
-    deleteBooking(id)
+  const handleDelete = async () => {
+    setLoading(true);
+    deleteBooking(deleteId)
       .then(() => {
         toast.success("Booking deleted successfully!", {
           position: "top-right",
@@ -31,53 +33,92 @@ const User = () => {
           theme: "dark",
         });
 
-        setBookings((prevBookings) => prevBookings.filter((booking) => booking._id !== id));
+        setBookings((prevBookings) => prevBookings.filter((booking) => booking._id !== deleteId));
       })
-      .catch((err) => {
+      .catch(() => {
         toast.error("Failed to delete booking.");
-        console.log(err);
+      })
+      .finally(() => {
+        setLoading(false);
+        setOpenDialog(false);
       });
   };
 
   return (
-    <Box width="100%" display={"flex"}>
-      <Box display="flex" flexDirection={"column"} justifyContent="center" alignItems={"center"} width="30%">
-        <PersonRoundedIcon sx={{ fontSize: "20rem" }} />
-        <Typography padding={1} width="100px" textAlign={"center"} border="1px solid #ccc" borderRadius={10}>
-          Name: {bookings.length > 0 ? bookings[0].user.name : "N/A"}
+    <Box width="100%" display={"flex"} flexDirection={{ xs: "column", md: "row" }} padding={2}>
+      {/* User Profile Section */}
+      <Box display="flex" flexDirection={"column"} justifyContent="center" alignItems={"center"} width={{ xs: "100%", md: "30%" }} padding={2}>
+        <PersonRoundedIcon sx={{ fontSize: "15rem", color: "#1976d2" }} />
+        <Typography
+          padding={1}
+          width="150px"
+          textAlign={"center"}
+          border="1px solid #ccc"
+          borderRadius={10}
+          fontWeight="bold"
+          bgcolor="#f5f5f5"
+        >
+          {bookings.length > 0 ? `Name: ${bookings[0].user.name}` : "No User Found"}
         </Typography>
       </Box>
-      <Box width="70%" display="flex" flexDirection={"column"}>
-        <Typography variant="h3" fontFamily={"verdana"} textAlign="center" padding={2}>
-          Bookings
+
+      {/* Booking List Section */}
+      <Box width={{ xs: "100%", md: "70%" }} display="flex" flexDirection={"column"} padding={2}>
+        <Typography variant="h4" fontFamily={"Verdana"} textAlign="center" padding={2} fontWeight="bold">
+          Your Bookings
         </Typography>
-        <Box margin="auto" display="flex" flexDirection={"column"} width="80%">
-          <List>
-            {bookings.length > 0 ? (
-              bookings.map((booking, index) => (
-                <ListItem sx={{ bgcolor: "#00d386", color: "white", textAlign: "center", margin: 1 }} key={index}>
-                  <ListItemText sx={{ margin: 1, width: "100px", textAlign: "left" }}>
-                    Movie: {booking.movie.title}
-                  </ListItemText>
-                  <ListItemText sx={{ margin: 1, width: "100px", textAlign: "left" }}>
-                    Seat: {booking.seatNumber}
-                  </ListItemText>
-                  <ListItemText sx={{ margin: 1, width: "100px", textAlign: "left" }}>
-                    Date: {new Date(booking.date).toDateString()}
-                  </ListItemText>
-                  <IconButton onClick={() => handleDelete(booking._id)} color="error">
-                    <DeleteForeverOutlined />
-                  </IconButton>
-                </ListItem>
-              ))
-            ) : (
-              <Typography textAlign="center" color="gray">
-                No bookings found.
-              </Typography>
-            )}
+        
+        {bookings.length > 0 ? (
+          <List sx={{ width: "90%", margin: "auto", bgcolor: "white", borderRadius: "10px", boxShadow: "0 4px 8px rgba(0,0,0,0.1)" }}>
+            {bookings.map((booking, index) => (
+              <ListItem
+                sx={{
+                  bgcolor: "#f5f5f5",
+                  color: "black",
+                  textAlign: "center",
+                  margin: "8px 0",
+                  borderRadius: "8px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  padding: "10px",
+                }}
+                key={index}
+              >
+                <ListItemText primary={`Movie: ${booking.movie.title}`} secondary={`Seat: ${booking.seatNumber} | Date: ${new Date(booking.date).toDateString()}`} />
+
+                <IconButton
+                  onClick={() => {
+                    setDeleteId(booking._id);
+                    setOpenDialog(true);
+                  }}
+                  color="error"
+                  disabled={loading}
+                >
+                  {loading && deleteId === booking._id ? <CircularProgress size={24} /> : <DeleteForeverOutlined />}
+                </IconButton>
+              </ListItem>
+            ))}
           </List>
-        </Box>
+        ) : (
+          <Typography textAlign="center" color="gray" fontSize="1.2rem" padding={3}>
+            No bookings found. Book your favorite movies now!
+          </Typography>
+        )}
       </Box>
+
+      {/* Confirmation Dialog for Delete */}
+      <Dialog open={openDialog} onClose={() => setOpenDialog(false)}>
+        <DialogTitle>Are you sure you want to delete this booking?</DialogTitle>
+        <DialogActions>
+          <Button onClick={() => setOpenDialog(false)} color="primary">
+            Cancel
+          </Button>
+          <Button onClick={handleDelete} color="error" variant="contained" disabled={loading}>
+            {loading ? <CircularProgress size={24} color="inherit" /> : "Delete"}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

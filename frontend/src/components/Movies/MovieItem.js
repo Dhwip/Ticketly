@@ -9,6 +9,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 
 const MovieItem = ({ title, releaseDate, posterUrl, id }) => {
+  console.log("MovieItem ID:", id);
   return (
     <Card
       sx={{
@@ -34,7 +35,7 @@ const MovieItem = ({ title, releaseDate, posterUrl, id }) => {
         <Button
           variant="contained"
           fullWidth
-          LinkComponent={Link}
+          component={Link} // Corrected here
           to={`/booking/${id}`}
           sx={{
             margin: "auto",

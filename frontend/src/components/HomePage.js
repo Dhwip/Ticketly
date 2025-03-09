@@ -20,8 +20,8 @@ const HomePage = () => {
 
   const sliderSettings = {
     infinite: true,
-    speed: 800, // Smooth effect
-    slidesToShow: isSmallScreen ? 1 : isMediumScreen ? 3 : 5, // Show more cards
+    speed: 800, 
+    slidesToShow: isSmallScreen ? 1 : isMediumScreen ? 3 : 5, 
     slidesToScroll: 1,
     autoplay: true,
     autoplaySpeed: 1500,
@@ -95,7 +95,7 @@ const HomePage = () => {
           {movies &&
             movies.map((movie, index) => (
               <MovieItem
-                id={movie.id}
+                id={movie._id}
                 title={movie.title}
                 posterUrl={movie.posterUrl}
                 releaseDate={movie.releaseDate}
