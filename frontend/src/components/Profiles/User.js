@@ -3,18 +3,20 @@ import React, { useEffect, useState } from "react";
 import PersonRoundedIcon from "@mui/icons-material/PersonRounded";
 import { DeleteForeverOutlined } from "@mui/icons-material/";
 import { IconButton, List, ListItem, ListItemText, Typography } from "@mui/material";
-import { deleteBooking, getUserBookings } from "../../helpers/api-helpers";
-import { useNavigate } from "react-router-dom";
+import { deleteBooking, getUserBooking } from "../../helpers/api-helpers";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 const User = () => {
-  const navigate = useNavigate();
   const [bookings, setBookings] = useState([]);
+  const [user, setUser] = useState(null);
 
   useEffect(() => {
-    getUserBookings()
-      .then((res) => setBookings(res.bookings))
+    getUserBooking()
+      .then((res) => {
+        setBookings(res.bookings || []);
+        setUser(res.user || {});
+      })
       .catch((err) => console.log(err));
   }, []);
 
@@ -44,7 +46,7 @@ const User = () => {
       <Box display="flex" flexDirection={"column"} justifyContent="center" alignItems={"center"} width="30%">
         <PersonRoundedIcon sx={{ fontSize: "20rem" }} />
         <Typography padding={1} width="100px" textAlign={"center"} border="1px solid #ccc" borderRadius={10}>
-          Name: {bookings.length > 0 ? bookings[0].user.name : "N/A"}
+          Name: {user?.name || "N/A"}
         </Typography>
       </Box>
       <Box width="70%" display="flex" flexDirection={"column"}>
@@ -57,13 +59,13 @@ const User = () => {
               bookings.map((booking, index) => (
                 <ListItem sx={{ bgcolor: "#00d386", color: "white", textAlign: "center", margin: 1 }} key={index}>
                   <ListItemText sx={{ margin: 1, width: "100px", textAlign: "left" }}>
-                    Movie: {booking.movie.title}
+                    Movie: {booking.movie?.title || "Unknown"}
                   </ListItemText>
-                  <ListItemText sx={{ margin: 1, width: "100px", textAlign: "left" }}>
-                    Seat: {booking.seatNumber}
+                  <ListItemText sx={{ margin: 1, width: "200px", textAlign: "left" }}>
+                    Seats: {booking.seatNumbers?.length ? booking.seatNumbers.join(", ") : "N/A"}
                   </ListItemText>
-                  <ListItemText sx={{ margin: 1, width: "100px", textAlign: "left" }}>
-                    Date: {new Date(booking.date).toDateString()}
+                  <ListItemText sx={{ margin: 1, width: "150px", textAlign: "left" }}>
+                    Date: {booking.date ? new Date(booking.date).toDateString() : "N/A"}
                   </ListItemText>
                   <IconButton onClick={() => handleDelete(booking._id)} color="error">
                     <DeleteForeverOutlined />
