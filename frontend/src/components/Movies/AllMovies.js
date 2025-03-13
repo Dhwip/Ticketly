@@ -6,7 +6,6 @@ import CradLayout from "../HomePage/CradLayout";
 const AllMovies = () => {
   const [movies, setMovies] = useState([]);
   const isSmallScreen = useMediaQuery("(max-width:600px)");
-  const isMediumScreen = useMediaQuery("(max-width:1024px)");
 
   useEffect(() => {
     getAllMovies()
@@ -16,63 +15,71 @@ const AllMovies = () => {
 
   return (
     <Box
-      width="100%"
-      margin="auto"
-      marginTop={2}
       sx={{
-        background: "linear-gradient(135deg, #1c1c1c, #2b2d42)",
-        color: "#fff",
-        paddingBottom: 4,
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        padding: 4,
+        minHeight: "100vh",
+        background: "linear-gradient(135deg, #1e3c72, #2a5298)",
+        color: "white",
       }}
     >
       {/* Title Section */}
-      <Box textAlign="center" py={3}>
-        <Typography
-          variant={isSmallScreen ? "h4" : "h3"}
-          fontWeight="bold"
-          sx={{ letterSpacing: "2px", color: "#FFD700" }}
-        >
-          Ticketly
-        </Typography>
-      </Box>
+      <Typography
+        variant={isSmallScreen ? "h4" : "h3"}
+        fontWeight="bold"
+        textAlign="center"
+        sx={{ color: "#FFD700", letterSpacing: "2px", mb: 2 }}
+      >
+        Ticketly
+      </Typography>
 
-      {/* All Movies Title */}
-      <Box padding={isSmallScreen ? 3 : 5} margin="auto">
+      {/* All Movies Container */}
+      <Box
+        sx={{
+          background: "rgba(255, 255, 255, 0.1)",
+          backdropFilter: "blur(10px)",
+          padding: 4,
+          borderRadius: 4,
+          boxShadow: "0px 10px 30px rgba(0, 0, 0, 0.2)",
+          width: "90%",
+          maxWidth: "1200px",
+          textAlign: "center",
+        }}
+      >
         <Typography
           variant={isSmallScreen ? "h5" : "h4"}
-          textAlign="center"
           fontWeight="bold"
-          sx={{ color: "#FFD700" }}
+          sx={{ color: "#FFD700", mb: 3 }}
         >
           All Movies
         </Typography>
-      </Box>
 
-      {/* Movies Grid */}
-      <Box
-        margin="auto"
-        width="90%"
-        display="grid"
-        gridTemplateColumns={{ xs: "1fr", sm: "1fr 1fr", md: "1fr 1fr 1fr" }}
-        gap={4}
-        padding={2}
-      >
-        {movies.length > 0 ? (
-          movies.map((movie) => (
-            <CradLayout
-              key={movie._id}
-              id={movie._id}
-              title={movie.title}
-              releaseDate={movie.releaseDate}
-              posterUrl={movie.posterUrl}
-              description={movie.description}
-            />
-          ))
-        ) : (
-          <Typography variant="h6" textAlign="center" width="100%">
-            No Movies Available
-          </Typography>
-        )}
+        {/* Movies Grid */}
+        <Box
+          display="grid"
+          gridTemplateColumns={{ xs: "1fr", sm: "1fr 1fr", md: "1fr 1fr 1fr" }}
+          gap={4}
+          padding={2}
+        >
+          {movies.length > 0 ? (
+            movies.map((movie) => (
+              <CradLayout
+                key={movie._id}
+                id={movie._id}
+                title={movie.title}
+                releaseDate={movie.releaseDate}
+                posterUrl={movie.posterUrl}
+                description={movie.description}
+              />
+            ))
+          ) : (
+            <Typography variant="h6" textAlign="center" sx={{ opacity: 0.8 }}>
+              No Movies Available
+            </Typography>
+          )}
+        </Box>
       </Box>
     </Box>
   );
