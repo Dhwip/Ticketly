@@ -7,6 +7,7 @@ import {
   Tabs,
   TextField,
   Toolbar,
+  Typography,
 } from "@mui/material";
 import MovieCreationIcon from "@mui/icons-material/MovieCreation";
 import { getAllMovies } from "../../helpers/api-helpers";
@@ -37,17 +38,36 @@ const Header = () => {
   };
 
   return (
-    <AppBar position="sticky" sx={{ bgcolor: "#1e1f26", paddingY: 1 }}>
-      <Toolbar>
-        <Box flexGrow={1} display="flex" alignItems="center">
-          <Link to="/" style={{ color: "white" }}>
-            <MovieCreationIcon fontSize="large" />
+    <AppBar position="sticky" sx={{ bgcolor: "#1c1c1c", paddingY: 1 }}>
+      <Toolbar sx={{ display: "flex", justifyContent: "space-between" }}>
+        {/* Logo Section */}
+        <Box display="flex" alignItems="center">
+          <Link to="/" style={{ textDecoration: "none", color: "white" }}>
+            <MovieCreationIcon fontSize="large" sx={{ color: "#FFD700" }} />
           </Link>
+          <Typography
+            variant="h6"
+            fontWeight="bold"
+            sx={{ color: "#FFD700", ml: 1 }}
+          >
+            MovieVerse
+          </Typography>
         </Box>
 
+        {/* Search Bar */}
         <Autocomplete
           onChange={handleChange}
-          sx={{ width: "40%", bgcolor: "white", borderRadius: 2 }}
+          sx={{
+            width: "40%",
+            bgcolor: "#2b2d42",
+            borderRadius: 2,
+            "& .MuiOutlinedInput-root": {
+              color: "#FFD700",
+              "& fieldset": { borderColor: "#FFD700" },
+              "&:hover fieldset": { borderColor: "#FFA500" },
+              "&.Mui-focused fieldset": { borderColor: "#FFD700" },
+            },
+          }}
           freeSolo
           options={data.map((option) => option.title)}
           renderInput={(params) => (
@@ -55,45 +75,101 @@ const Header = () => {
               {...params}
               placeholder="Search Movies..."
               variant="outlined"
-              sx={{ input: { color: "black" }, padding: 1 }}
+              sx={{
+                input: { color: "#FFD700" },
+                "& .MuiOutlinedInput-root": {
+                  "& fieldset": { borderColor: "#FFD700" },
+                  "&:hover fieldset": { borderColor: "#FFA500" },
+                  "&.Mui-focused fieldset": { borderColor: "#FFD700" },
+                },
+              }}
             />
           )}
         />
 
+        {/* Navigation Tabs */}
         <Box>
           <Tabs
             value={value}
             onChange={(e, val) => setValue(val)}
             textColor="inherit"
             indicatorColor="secondary"
-            TabIndicatorProps={{ sx: { height: 3 } }}
+            TabIndicatorProps={{ sx: { height: 3, bgcolor: "#FFD700" } }}
           >
             {!isAdminLoggedIn && !isUserLoggedIn && (
               <>
-                <Tab to="/auth" component={NavLink} label="Auth" />
-                <Tab to="/admin" component={NavLink} label="Admin" />
+                <Tab
+                  to="/auth"
+                  component={NavLink}
+                  label="Auth"
+                  sx={{
+                    color: "#FFD700",
+                    "&:hover": { color: "#FFA500" },
+                  }}
+                />
+                <Tab
+                  to="/admin"
+                  component={NavLink}
+                  label="Admin"
+                  sx={{
+                    color: "#FFD700",
+                    "&:hover": { color: "#FFA500" },
+                  }}
+                />
               </>
             )}
             {isUserLoggedIn && (
               <>
-                <Tab to="/user" component={NavLink} label="User" />
+                <Tab
+                  to="/user"
+                  component={NavLink}
+                  label="User"
+                  sx={{
+                    color: "#FFD700",
+                    "&:hover": { color: "#FFA500" },
+                  }}
+                />
                 <Tab
                   onClick={() => dispatch(userActions.logout())}
                   to="/"
                   component={NavLink}
                   label="Logout"
+                  sx={{
+                    color: "#FFD700",
+                    "&:hover": { color: "#FF4500" },
+                  }}
                 />
               </>
             )}
             {isAdminLoggedIn && (
               <>
-                <Tab to="/profile" component={NavLink} label="Profile" />
-                <Tab to="/add" component={NavLink} label="Add Movie" />
+                <Tab
+                  to="/profile"
+                  component={NavLink}
+                  label="Profile"
+                  sx={{
+                    color: "#FFD700",
+                    "&:hover": { color: "#FFA500" },
+                  }}
+                />
+                <Tab
+                  to="/add"
+                  component={NavLink}
+                  label="Add Movie"
+                  sx={{
+                    color: "#FFD700",
+                    "&:hover": { color: "#FFA500" },
+                  }}
+                />
                 <Tab
                   onClick={() => dispatch(adminActions.logout())}
                   to="/"
                   component={NavLink}
                   label="Logout"
+                  sx={{
+                    color: "#FFD700",
+                    "&:hover": { color: "#FF4500" },
+                  }}
                 />
               </>
             )}

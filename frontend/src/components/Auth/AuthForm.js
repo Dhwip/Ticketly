@@ -10,7 +10,9 @@ import {
 import React, { useState } from "react";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import { Link } from "react-router-dom";
-const labelStyle = { mt: 1, mb: 1 };
+
+const labelStyle = { mt: 1, mb: 1, fontSize: "14px", fontWeight: "bold", color: "#FFD700" };
+
 const AuthForm = ({ onSubmit, isAdmin }) => {
   const [inputs, setInputs] = useState({
     name: "",
@@ -18,83 +20,136 @@ const AuthForm = ({ onSubmit, isAdmin }) => {
     password: "",
   });
   const [isSignup, setIsSignup] = useState(false);
+
   const handleChange = (e) => {
     setInputs((prevState) => ({
       ...prevState,
       [e.target.name]: e.target.value,
     }));
   };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     onSubmit({ inputs, signup: isAdmin ? false : isSignup });
   };
+
   return (
-    <Dialog PaperProps={{ style: { borderRadius: 20 } }} open={true}>
+    <Dialog 
+      PaperProps={{ 
+        style: { 
+          borderRadius: 15, 
+          padding: "20px", 
+          backgroundColor: "#2b2d42", 
+          color: "#fff" 
+        } 
+      }} 
+      open={true}
+    >
+      {/* Close Button */}
       <Box sx={{ ml: "auto", padding: 1 }}>
-        <IconButton LinkComponent={Link} to="/">
-          <CloseRoundedIcon />
+        <IconButton 
+          LinkComponent={Link} 
+          to="/" 
+          sx={{ color: "#FFD700", transition: "0.2s", "&:hover": { color: "#FFA500" } }}
+        >
+          <CloseRoundedIcon fontSize="large" />
         </IconButton>
       </Box>
-      <Typography variant="h4" textAlign={"center"}>
-        {isSignup ? "Signup" : "Login"}
+
+      {/* Form Heading */}
+      <Typography 
+        variant="h4" 
+        textAlign="center" 
+        fontWeight="bold" 
+        sx={{ color: "#FFD700", mb: 2 }}
+      >
+        {isSignup ? "Create an Account" : "Welcome Back"}
       </Typography>
+
+      {/* Form */}
       <form onSubmit={handleSubmit}>
         <Box
-          padding={6}
-          display={"flex"}
-          justifyContent={"center"}
+          padding={4}
+          display="flex"
           flexDirection="column"
-          width={400}
+          alignItems="center"
+          width={380}
           margin="auto"
-          alignContent={"center"}
         >
+          {/* Name Field (Only for Signup) */}
           {!isAdmin && isSignup && (
             <>
-              {" "}
-              <FormLabel sx={labelStyle}>Name</FormLabel>
+              <FormLabel sx={labelStyle}>Full Name</FormLabel>
               <TextField
                 value={inputs.name}
                 onChange={handleChange}
-                margin="normal"
-                variant="standard"
-                type={"text"}
+                fullWidth
+                variant="outlined"
+                type="text"
                 name="name"
+                sx={{ mb: 2, bgcolor: "#3a3d56", borderRadius: "5px", input: { color: "#fff" } }}
               />
             </>
           )}
-          <FormLabel sx={labelStyle}>Email</FormLabel>
+
+          {/* Email Field */}
+          <FormLabel sx={labelStyle}>Email Address</FormLabel>
           <TextField
             value={inputs.email}
             onChange={handleChange}
-            margin="normal"
-            variant="standard"
-            type={"email"}
+            fullWidth
+            variant="outlined"
+            type="email"
             name="email"
+            sx={{ mb: 2, bgcolor: "#3a3d56", borderRadius: "5px", input: { color: "#fff" } }}
           />
+
+          {/* Password Field */}
           <FormLabel sx={labelStyle}>Password</FormLabel>
           <TextField
             value={inputs.password}
             onChange={handleChange}
-            margin="normal"
-            variant="standard"
-            type={"password"}
+            fullWidth
+            variant="outlined"
+            type="password"
             name="password"
+            sx={{ mb: 2, bgcolor: "#3a3d56", borderRadius: "5px", input: { color: "#fff" } }}
           />
+
+          {/* Submit Button */}
           <Button
-            sx={{ mt: 2, borderRadius: 10, bgcolor: "#2b2d42" }}
+            sx={{
+              mt: 2,
+              borderRadius: 8,
+              bgcolor: "#FFD700",
+              color: "#000",
+              fontWeight: "bold",
+              width: "100%",
+              padding: "10px",
+              "&:hover": { bgcolor: "#FFA500" },
+            }}
             type="submit"
             fullWidth
             variant="contained"
           >
-            {isSignup ? "Signup" : "Login"}
+            {isSignup ? "Sign Up" : "Login"}
           </Button>
+
+          {/* Switch to Signup/Login */}
           {!isAdmin && (
             <Button
               onClick={() => setIsSignup(!isSignup)}
-              sx={{ mt: 2, borderRadius: 10 }}
+              sx={{
+                mt: 2,
+                borderRadius: 8,
+                color: "#FFD700",
+                fontWeight: "bold",
+                textDecoration: "underline",
+                "&:hover": { color: "#FFA500" },
+              }}
               fullWidth
             >
-              Switch To {isSignup ? "Login" : "Signup"}
+              {isSignup ? "Already have an account? Login" : "Don't have an account? Sign Up"}
             </Button>
           )}
         </Box>

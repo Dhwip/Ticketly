@@ -67,32 +67,40 @@ const Booking = () => {
   };
 
   return (
-    <Box padding={4}>
+    <Box
+      width="100%"
+      minHeight="100vh"
+      sx={{
+        background: "linear-gradient(135deg, #1c1c1c, #2b2d42)",
+        color: "#fff",
+        padding: 4,
+      }}
+    >
       {movie && (
         <Fragment>
-          <Typography variant="h4" textAlign="center" gutterBottom fontWeight="bold">
+          <Typography variant="h3" textAlign="center" gutterBottom fontWeight="bold" sx={{ color: "#FFD700" }}>
             Book Tickets For: {movie.title}
           </Typography>
           <Grid container spacing={4}>
             <Grid item xs={12} md={5}>
-              <Paper elevation={3} sx={{ padding: 2 }}>
+              <Paper elevation={5} sx={{ padding: 2, background: "#000", color: "#fff", borderRadius: 3 }}>
                 <img width="100%" height="auto" src={movie.posterUrl} alt={movie.title} style={{ borderRadius: 8 }} />
                 <Typography marginTop={2}>{movie.description}</Typography>
-                <Typography fontWeight="bold" marginTop={1}>
+                <Typography fontWeight="bold" marginTop={1} sx={{ color: "#FFD700" }}>
                   Starring: {movie.actors.join(", ")}
                 </Typography>
-                <Typography fontWeight="bold" marginTop={1}>
+                <Typography fontWeight="bold" marginTop={1} sx={{ color: "#FFD700" }}>
                   Release Date: {new Date(movie.releaseDate).toDateString()}
                 </Typography>
               </Paper>
             </Grid>
             <Grid item xs={12} md={7}>
-              <Paper elevation={3} sx={{ padding: 3 }}>
+              <Paper elevation={5} sx={{ padding: 3, background: "#2b2d42", borderRadius: 3 }}>
                 {bookingSuccess ? (
                   <Alert severity="success">Booking Successful! Enjoy your movie!</Alert>
                 ) : (
                   <form onSubmit={handleSubmit}>
-                    <FormLabel>Booking Date</FormLabel>
+                    <FormLabel sx={{ color: "#FFD700" }}>Booking Date</FormLabel>
                     <TextField
                       name="date"
                       type="date"
@@ -101,8 +109,9 @@ const Booking = () => {
                       variant="outlined"
                       value={inputs.date}
                       onChange={handleDateChange}
+                      sx={{ background: "#fff", borderRadius: 1 }}
                     />
-                    <Typography fontWeight="bold" marginTop={2} textAlign="center">
+                    <Typography fontWeight="bold" marginTop={2} textAlign="center" sx={{ color: "#FFD700" }}>
                       Select Your Seats
                     </Typography>
                     <Grid container spacing={1} justifyContent="center" marginTop={2}>
@@ -117,14 +126,11 @@ const Booking = () => {
                               sx={{
                                 minWidth: 50,
                                 minHeight: 50,
-                                backgroundColor: isBooked
-                                  ? "gray"
-                                  : selectedSeats.includes(seatNumber)
-                                  ? "green"
-                                  : "lightblue",
-                                color: "white",
+                                background: isBooked ? "gray" : selectedSeats.includes(seatNumber) ? "#FFD700" : "#FFA500",
+                                color: "#000",
+                                fontWeight: "bold",
                                 '&:hover': {
-                                  backgroundColor: isBooked ? "gray" : "darkblue",
+                                  background: isBooked ? "gray" : "#FFD700",
                                 },
                               }}
                               onClick={() => handleSeatSelection(seatNumber)}
@@ -135,7 +141,12 @@ const Booking = () => {
                         );
                       })}
                     </Grid>
-                    <Button type="submit" fullWidth sx={{ mt: 3 }} variant="contained" color="primary">
+                    <Button
+                      type="submit"
+                      fullWidth
+                      sx={{ mt: 3, background: "linear-gradient(135deg, #FFD700, #FFA500)", color: "#000", fontWeight: "bold", borderRadius: "30px", '&:hover': { background: "#FFA500" } }}
+                      variant="contained"
+                    >
                       Book Now
                     </Button>
                   </form>
