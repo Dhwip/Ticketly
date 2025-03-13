@@ -10,8 +10,8 @@ const bookingSchema = new mongoose.Schema({
     type: Date,
     required: true,
   },
-  seatNumber: {
-    type: Number,
+  seatNumbers: {
+    type: [Number],
     required: true,
   },
   user: {

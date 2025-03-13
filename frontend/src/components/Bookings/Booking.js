@@ -38,21 +38,37 @@ const Booking = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+  
+    const selectedDate = new Date(inputs.date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); 
+  
+    if (!inputs.date) {
+      alert("Please select a booking date.");
+      return;
+    }
+  
+    if (selectedDate <= today) {
+      alert("Please select a future date for booking.");
+      return;
+    }
+  
     if (selectedSeats.length === 0) {
       alert("Please select at least one seat.");
       return;
     }
-    console.log('selected seats' ,selectedSeats);
+    console.log("selected seats", selectedSeats);
     console.log(selectedSeats.length);
-    newBooking({ seatNumber: selectedSeats.length, date: inputs.date, movie: movie._id })
+    newBooking({ seatNumbers: selectedSeats, date: inputs.date, movie: movie._id })
       .then((res) => {
         console.log(res);
         setBookedSeats([...bookedSeats, ...selectedSeats]);
         setSelectedSeats([]);
-        setBookingSuccess(true); // Show success message
+        setBookingSuccess(true);
       })
       .catch((err) => console.log(err));
   };
+  
 
   return (
     <div>

@@ -4,9 +4,9 @@ import Movie from "../models/Movie.js";
 import User from "../models/User.js";
 
 export const newBooking = async (req, res, next) => {
-  const { movie, date, seatNumber, user } = req.body;
+  const { movie, date, seatNumbers, user } = req.body;
 
-  console.log('Data of new booking',movie,date,seatNumber,user)                                                               
+  console.log('Data of new booking',movie,date,seatNumbers,user)                                                               
   let existingMovie;
   let existingUser;
   try {
@@ -27,7 +27,7 @@ export const newBooking = async (req, res, next) => {
     booking = new Bookings({
       movie,
       date: new Date(`${date}`),
-      seatNumber,
+      seatNumbers,
       user,
     });
     const session = await mongoose.startSession();
