@@ -1,4 +1,4 @@
-import { Button, FormLabel, TextField, Typography, Alert } from "@mui/material";
+import { Button, FormLabel, TextField, Typography, Alert, Paper, Grid } from "@mui/material";
 import { Box } from "@mui/system";
 import React, { Fragment, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
@@ -38,111 +38,114 @@ const Booking = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-  
     const selectedDate = new Date(inputs.date);
     const today = new Date();
-    today.setHours(0, 0, 0, 0); 
-  
+    today.setHours(0, 0, 0, 0);
+    
     if (!inputs.date) {
       alert("Please select a booking date.");
       return;
     }
-  
+    
     if (selectedDate <= today) {
       alert("Please select a future date for booking.");
       return;
     }
-  
+    
     if (selectedSeats.length === 0) {
       alert("Please select at least one seat.");
       return;
     }
-    console.log("selected seats", selectedSeats);
-    console.log(selectedSeats.length);
+    
     newBooking({ seatNumbers: selectedSeats, date: inputs.date, movie: movie._id })
       .then((res) => {
-        console.log(res);
         setBookedSeats([...bookedSeats, ...selectedSeats]);
         setSelectedSeats([]);
         setBookingSuccess(true);
       })
       .catch((err) => console.log(err));
   };
-  
 
   return (
-    <div>
+    <Box padding={4}>
       {movie && (
         <Fragment>
-          <Typography padding={3} fontFamily="fantasy" variant="h4" textAlign="center">
+          <Typography variant="h4" textAlign="center" gutterBottom fontWeight="bold">
             Book Tickets For: {movie.title}
           </Typography>
-          <Box display="flex" justifyContent="center">
-            <Box display="flex" flexDirection="column" paddingTop={3} width="50%" marginRight="auto">
-              <img width="80%" height="300px" src={movie.posterUrl} alt={movie.title} />
-              <Box width="80%" marginTop={3} padding={2}>
-                <Typography paddingTop={2}>{movie.description}</Typography>
+          <Grid container spacing={4}>
+            <Grid item xs={12} md={5}>
+              <Paper elevation={3} sx={{ padding: 2 }}>
+                <img width="100%" height="auto" src={movie.posterUrl} alt={movie.title} style={{ borderRadius: 8 }} />
+                <Typography marginTop={2}>{movie.description}</Typography>
                 <Typography fontWeight="bold" marginTop={1}>
                   Starring: {movie.actors.join(", ")}
                 </Typography>
                 <Typography fontWeight="bold" marginTop={1}>
                   Release Date: {new Date(movie.releaseDate).toDateString()}
                 </Typography>
-              </Box>
-            </Box>
-            <Box width="50%" paddingTop={3}>
-              {bookingSuccess ? (
-                <Alert severity="success">Booking Successful! Enjoy your movie!</Alert>
-              ) : (
-                <form onSubmit={handleSubmit}>
-                  <Box padding={5} margin="auto" display="flex" flexDirection="column">
+              </Paper>
+            </Grid>
+            <Grid item xs={12} md={7}>
+              <Paper elevation={3} sx={{ padding: 3 }}>
+                {bookingSuccess ? (
+                  <Alert severity="success">Booking Successful! Enjoy your movie!</Alert>
+                ) : (
+                  <form onSubmit={handleSubmit}>
                     <FormLabel>Booking Date</FormLabel>
                     <TextField
                       name="date"
                       type="date"
+                      fullWidth
                       margin="normal"
-                      variant="standard"
+                      variant="outlined"
                       value={inputs.date}
                       onChange={handleDateChange}
                     />
                     <Typography fontWeight="bold" marginTop={2} textAlign="center">
                       Select Your Seats
                     </Typography>
-                    <Box display="grid" gridTemplateColumns="repeat(5, 1fr)" gap={1} marginTop={2}>
+                    <Grid container spacing={1} justifyContent="center" marginTop={2}>
                       {[...Array(25)].map((_, index) => {
                         const seatNumber = index + 1;
                         const isBooked = bookedSeats.includes(seatNumber);
                         return (
-                          <Button
-                            key={seatNumber}
-                            variant="contained"
-                            disabled={isBooked}
-                            sx={{
-                              backgroundColor: isBooked
-                                ? "gray"
-                                : selectedSeats.includes(seatNumber)
-                                ? "green"
-                                : "lightblue",
-                              color: "white",
-                            }}
-                            onClick={() => handleSeatSelection(seatNumber)}
-                          >
-                            {seatNumber}
-                          </Button>
+                          <Grid item key={seatNumber}>
+                            <Button
+                              variant="contained"
+                              disabled={isBooked}
+                              sx={{
+                                minWidth: 50,
+                                minHeight: 50,
+                                backgroundColor: isBooked
+                                  ? "gray"
+                                  : selectedSeats.includes(seatNumber)
+                                  ? "green"
+                                  : "lightblue",
+                                color: "white",
+                                '&:hover': {
+                                  backgroundColor: isBooked ? "gray" : "darkblue",
+                                },
+                              }}
+                              onClick={() => handleSeatSelection(seatNumber)}
+                            >
+                              {seatNumber}
+                            </Button>
+                          </Grid>
                         );
                       })}
-                    </Box>
-                    <Button type="submit" sx={{ mt: 3 }} variant="contained" color="primary">
+                    </Grid>
+                    <Button type="submit" fullWidth sx={{ mt: 3 }} variant="contained" color="primary">
                       Book Now
                     </Button>
-                  </Box>
-                </form>
-              )}
-            </Box>
-          </Box>
+                  </form>
+                )}
+              </Paper>
+            </Grid>
+          </Grid>
         </Fragment>
       )}
-    </div>
+    </Box>
   );
 };
 
