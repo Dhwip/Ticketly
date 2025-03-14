@@ -15,17 +15,17 @@ const AllMovies = () => {
 
   return (
     <Box
-      width="100%"
-      margin="auto"
-      marginTop={2}
       sx={{
+        width: "100%",
+        minHeight: "100vh",
         background: "linear-gradient(135deg, #1c1c1c, #2b2d42)",
         color: "#fff",
-        paddingBottom: 4,
+        py: 4,
+        px: 2,
       }}
     >
       {/* Title Section */}
-      <Box textAlign="center" py={3}>
+      <Box textAlign="center" mb={3}>
         <Typography
           variant={isSmallScreen ? "h4" : "h3"}
           fontWeight="bold"
@@ -36,10 +36,9 @@ const AllMovies = () => {
       </Box>
 
       {/* All Movies Title */}
-      <Box padding={isSmallScreen ? 3 : 5} margin="auto">
+      <Box textAlign="center" mb={4}>
         <Typography
           variant={isSmallScreen ? "h5" : "h4"}
-          textAlign="center"
           fontWeight="bold"
           sx={{ color: "#FFD700" }}
         >
@@ -49,13 +48,15 @@ const AllMovies = () => {
 
       {/* Movies Grid */}
       <Box
-        margin="auto"
-        width="90%"
-        display="flex"
-        justifyContent="center"
-        flexWrap="wrap"
-        gap={4}
-        padding={2}
+        sx={{
+          display: "flex",
+          flexWrap: "wrap",
+          justifyContent: "center",
+          gap: 3,
+          px: 2,
+          maxWidth: "1200px",
+          margin: "auto",
+        }}
       >
         {movies.length > 0 ? (
           movies.map((movie, index) => (
@@ -68,7 +69,7 @@ const AllMovies = () => {
             />
           ))
         ) : (
-          <Typography variant="h6" textAlign="center" width="100%">
+          <Typography variant="h6" sx={{ textAlign: "center", width: "100%", opacity: 0.8 }}>
             No Movies Available
           </Typography>
         )}
