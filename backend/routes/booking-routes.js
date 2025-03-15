@@ -80,4 +80,36 @@ router.delete("/:id", async (req, res) => {
     }
 });
 
+// Get booked seats for a movie on a specific date
+router.get('/booked-seats/:movieId/:date', async (req, res) => {
+    try {
+        const { movieId, date } = req.params;
+        
+        // Convert date string to Date object
+        const selectedDate = new Date(date);
+        selectedDate.setHours(0, 0, 0, 0);
+        const nextDay = new Date(selectedDate);
+        nextDay.setDate(nextDay.getDate() + 1);
+
+        // Find all bookings for this movie on the selected date
+        const bookings = await Booking.find({
+            movie: movieId,
+            date: {
+                $gte: selectedDate,
+                $lt: nextDay
+            }
+        });
+
+        // Extract all booked seat numbers
+        const bookedSeats = bookings.reduce((seats, booking) => {
+            return [...seats, ...booking.seatNumbers];
+        }, []);
+
+        res.status(200).json({ bookedSeats });
+    } catch (error) {
+        console.error('Error fetching booked seats:', error);
+        res.status(500).json({ message: 'Error fetching booked seats', error: error.message });
+    }
+});
+
 export default router;

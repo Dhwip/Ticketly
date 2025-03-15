@@ -211,12 +211,33 @@ export const verifyPayment = async () => {
     }
 
     console.log('Verifying payment for session:', sessionId);
-    const res = await axios.get(`/payment/verify-payment/${sessionId}`);
+    const res = await axios.get(`${axios.defaults.baseURL}/payment/verify-payment/${sessionId}`);
     console.log('Payment verification result:', res.data);
     
-    return res.data.status === 'paid';
+    return res.data;
   } catch (error) {
     console.error("Payment verification error:", error.response || error);
-    return false;
+    throw error;
+  }
+};
+
+export const getBookedSeats = async (movieId, date) => {
+    try {
+        const formattedDate = date.split('T')[0]; // Format date as YYYY-MM-DD
+        const res = await axios.get(`${axios.defaults.baseURL}/booking/booked-seats/${movieId}/${formattedDate}`);
+        return res.data.bookedSeats;
+    } catch (err) {
+        console.error("Error fetching booked seats:", err);
+        throw new Error("Failed to fetch booked seats");
+    }
+};
+
+export const getMovieById = async (id) => {
+  try {
+    const res = await axios.get(`/movie/${id}`);
+    return res.data;
+  } catch (err) {
+    console.error("Error fetching movie:", err);
+    throw err;
   }
 };

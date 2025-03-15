@@ -1,39 +1,83 @@
 import React, { useEffect, useState } from 'react';
-import { Box, Typography, CircularProgress } from '@mui/material';
+import { Box, Typography, CircularProgress, Dialog, DialogContent, DialogTitle, Paper } from '@mui/material';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { verifyPayment } from '../../api-helpers/api-helpers';
+import { verifyPayment, getMovieById } from '../../api-helpers/api-helpers';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 
 const PaymentSuccess = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [showDialog, setShowDialog] = useState(false);
+  const [bookingDetails, setBookingDetails] = useState(null);
+  const [countdown, setCountdown] = useState(5);
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Countdown timer effect
+  useEffect(() => {
+    let timer;
+    if (showDialog && countdown > 0) {
+      timer = setInterval(() => {
+        setCountdown((prev) => prev - 1);
+      }, 1000);
+    } else if (countdown === 0) {
+      setShowDialog(false);
+      navigate('/user');
+    }
+    return () => clearInterval(timer);
+  }, [showDialog, countdown, navigate]);
 
   useEffect(() => {
     const verifyAndComplete = async () => {
       try {
-        // Get session ID from URL params
         const params = new URLSearchParams(location.search);
         const sessionId = params.get('session_id');
         
         if (!sessionId) {
           throw new Error('No session ID found');
         }
-
-        // Store session ID for verification
         localStorage.setItem('stripeSessionId', sessionId);
-        
-        // Verify payment and create booking
+      
         const result = await verifyPayment();
+        console.log('Payment verification result:', result);
         
-        if (result) {
+        if (result && result.status === 'paid') {
           setLoading(false);
-          // Redirect to user profile after 2 seconds
-          setTimeout(() => {
-            navigate('/user');
-          }, 2000);
+
+          const booking = result.booking;
+          // Set initial booking details
+          setBookingDetails({
+            movieTitle: typeof booking.movie === 'object' ? booking.movie.title : 'Loading...',
+            date: new Date(booking.date).toDateString(),
+            seatNumbers: Array.isArray(booking.seatNumbers) 
+              ? booking.seatNumbers.join(", ")
+              : booking.seatNumbers
+          });
+
+          // If we only have movie ID, fetch the movie details
+          if (typeof booking.movie === 'string') {
+            try {
+              const movieData = await getMovieById(booking.movie);
+              if (movieData.movie && movieData.movie.title) {
+                setBookingDetails(prev => ({
+                  ...prev,
+                  movieTitle: movieData.movie.title
+                }));
+              }
+            } catch (err) {
+              console.error('Error fetching movie details:', err);
+              setBookingDetails(prev => ({
+                ...prev,
+                movieTitle: 'Movie details unavailable'
+              }));
+            }
+          }
+
+          setShowDialog(true);
+          localStorage.removeItem('stripeSessionId');
         } else {
-          throw new Error('Payment verification failed');
+          console.error('Invalid payment verification result:', result);
+          throw new Error(result?.message || 'Payment verification failed');
         }
       } catch (err) {
         console.error('Error completing booking:', err);
@@ -89,12 +133,66 @@ const PaymentSuccess = () => {
       minHeight="100vh"
       bgcolor="#1c1c1c"
     >
-      <Typography variant="h4" sx={{ color: '#FFD700', mb: 2 }}>
-        Payment Successful!
-      </Typography>
-      <Typography variant="h6" sx={{ color: '#fff' }}>
-        Redirecting to your bookings...
-      </Typography>
+      <Dialog 
+        open={showDialog} 
+        maxWidth="sm" 
+        fullWidth
+        PaperProps={{
+          sx: {
+            bgcolor: '#2b2d42',
+            color: '#fff',
+            borderRadius: 3,
+          }
+        }}
+      >
+        <DialogTitle sx={{ textAlign: 'center', color: '#FFD700' }}>
+          <CheckCircleIcon sx={{ fontSize: 60, color: '#4CAF50', mb: 1 }} />
+          <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
+            Booking Confirmed!
+          </Typography>
+        </DialogTitle>
+        <DialogContent>
+          <Paper elevation={3} sx={{ p: 3, bgcolor: 'rgba(255, 215, 0, 0.1)', border: '1px solid #FFD700' }}>
+            {bookingDetails && (
+              <>
+                <Typography variant="h6" sx={{ color: '#FFD700', mb: 2 }}>
+                  Booking Details:
+                </Typography>
+                <Typography sx={{ color: '#fff', mb: 1 }}>
+                  <strong>Movie:</strong> {bookingDetails.movieTitle}
+                </Typography>
+                <Typography sx={{ color: '#fff', mb: 1 }}>
+                  <strong>Date:</strong> {bookingDetails.date}
+                </Typography>
+                <Typography sx={{ color: '#fff', mb: 1 }}>
+                  <strong>Show Time:</strong> 21:00 (9:00 PM)
+                </Typography>
+                <Typography sx={{ color: '#fff', mb: 1 }}>
+                  <strong>Location:</strong> Vanilla Cinemas, Ahmedabad
+                </Typography>
+                <Typography sx={{ color: '#fff', mb: 2 }}>
+                  <strong>Seats:</strong> {bookingDetails.seatNumbers}
+                </Typography>
+                <Typography sx={{ color: '#FFD700', mt: 2, fontStyle: 'italic' }}>
+                  Please arrive 15 minutes before show time
+                </Typography>
+              </>
+            )}
+          </Paper>
+          <Typography 
+            variant="caption" 
+            sx={{ 
+              display: 'block', 
+              textAlign: 'center', 
+              mt: 2, 
+              color: '#fff',
+              fontSize: '1rem'
+            }}
+          >
+            Redirecting to your bookings in {countdown} seconds...
+          </Typography>
+        </DialogContent>
+      </Dialog>
     </Box>
   );
 };

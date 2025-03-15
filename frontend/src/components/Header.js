@@ -40,9 +40,12 @@ const Header = () => {
     else if (location.pathname === "/movies") setValue(0);
     else if (location.pathname === "/admin") setValue(1);
     else if (location.pathname === "/auth") setValue(2);
-    else if (location.pathname === "/user") setValue(3);
-    else if (location.pathname === "/add") setValue(4);
-    else if (location.pathname === "/user-admin") setValue(5);
+    else if (location.pathname === "/user") setValue(1);
+    else if (location.pathname === "/add") setValue(1);
+    else if (location.pathname === "/user-admin") setValue(2);
+    else if (location.pathname === "/booking/success") setValue(false);
+    else if (location.pathname === "/booking/cancel") setValue(false);
+    else if (location.pathname.startsWith("/booking/")) setValue(false);
     else setValue(false);
   }, [location.pathname]);
 
@@ -126,15 +129,15 @@ const Header = () => {
             )}
             {isUserLoggedIn && (
               <>
-                <Tab value={3} component={Link} to="/user" label="Profile" sx={tabStyle} />
-                <Tab value={6} onClick={() => logout(false)} label="Logout" sx={logoutStyle} />
+                <Tab value={1} component={Link} to="/user" label="Profile" sx={tabStyle} />
+                <Tab value={2} onClick={() => logout(false)} label="Logout" sx={logoutStyle} />
               </>
             )}
             {isAdminLoggedIn && (
               <>
-                <Tab value={4} component={Link} to="/add" label="Add Movie" sx={tabStyle} />
-                <Tab value={5} component={Link} to="/user-admin" label="Profile" sx={tabStyle} />
-                <Tab value={7} onClick={() => logout(true)} label="Logout" sx={logoutStyle} />
+                <Tab value={1} component={Link} to="/add" label="Add Movie" sx={tabStyle} />
+                <Tab value={2} component={Link} to="/user-admin" label="Profile" sx={tabStyle} />
+                <Tab value={0} onClick={() => logout(true)} label="Logout" sx={logoutStyle} />
               </>
             )}
           </Tabs>
