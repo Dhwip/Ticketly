@@ -12,6 +12,8 @@ import AdminProfile from "./profile/AdminProfile";
 import UserProfile from "./profile/UserProfile";
 import { adminActions, userActions } from "./store";
 import { ToastContainer } from "react-toastify";
+import PaymentSuccess from "./components/Bookings/PaymentSuccess";
+import PaymentCancel from "./components/Bookings/PaymentCancel";
 
 function App() {
   const dispatch = useDispatch();
@@ -55,6 +57,8 @@ function App() {
               <Route path="/user-admin" element={<AdminProfile />} />{" "}
             </>
           )}
+          <Route path="/booking/success" element={<PaymentSuccess />} />
+          <Route path="/booking/cancel" element={<PaymentCancel />} />
         </Routes>
       </section>
     </div>

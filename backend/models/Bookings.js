@@ -19,6 +19,24 @@ const bookingSchema = new mongoose.Schema({
     ref: "User",
     required: true,
   },
+  paymentInfo: {
+    sessionId: {
+      type: String,
+      required: true
+    },
+    status: {
+      type: String,
+      required: true,
+      enum: ['pending', 'completed', 'failed'],
+      default: 'pending'
+    },
+    amount: {
+      type: Number,
+      required: true
+    }
+  }
+}, {
+  timestamps: true
 });
 
 export default mongoose.model("Booking", bookingSchema);
