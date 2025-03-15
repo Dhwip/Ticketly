@@ -18,6 +18,11 @@ const movieSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  language: {
+    type: String,
+    required: true,
+    default: "Not specified"
+  },
   featured: {
     type: Boolean,
   },

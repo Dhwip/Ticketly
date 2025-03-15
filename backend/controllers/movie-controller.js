@@ -62,18 +62,16 @@ export const addMovie = async (req, res, next) => {
 };
 
 export const getAllMovies = async (req, res, next) => {
-  let movies;
-
   try {
-    movies = await Movie.find();
+    const movies = await Movie.find()
+      .populate("admin bookings")
+      .sort({ _id: -1 }); // Sort by _id in descending order (newest first)
+    
+    return res.status(200).json({ movies });
   } catch (err) {
-    return console.log(err);
-  }
-
-  if (!movies) {
+    console.error(err);
     return res.status(500).json({ message: "Request Failed" });
   }
-  return res.status(200).json({ movies });
 };
 
 export const getMovieById = async (req, res, next) => {
@@ -90,4 +88,32 @@ export const getMovieById = async (req, res, next) => {
   }
 
   return res.status(200).json({ movie });
+};
+
+export const deleteMovie = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Check if movie exists
+    const movie = await Movie.findById(id);
+    if (!movie) {
+      return res.status(404).json({ message: "Movie not found" });
+    }
+
+    // Delete the movie
+    await Movie.findByIdAndDelete(id);
+
+    // Also remove this movie from admin's addedMovies array
+    if (movie.admin) {
+      await Admin.findByIdAndUpdate(
+        movie.admin,
+        { $pull: { addedMovies: id } }
+      );
+    }
+
+    return res.status(200).json({ message: "Movie deleted successfully" });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: "Error deleting movie", error: err.message });
+  }
 };

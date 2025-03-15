@@ -1,7 +1,7 @@
 import { Button, FormLabel, TextField, Typography, Paper, Grid } from "@mui/material";
 import { Box } from "@mui/system";
 import React, { Fragment, useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { getMovieDetails, createPaymentSession, getBookedSeats } from "../../api-helpers/api-helpers";
 
 const Booking = () => {
@@ -11,6 +11,22 @@ const Booking = () => {
   const [bookedSeats, setBookedSeats] = useState([]);
   const [loading, setLoading] = useState(false);
   const id = useParams().id;
+  const navigate = useNavigate();
+
+  // Check for admin at component load
+  useEffect(() => {
+    const isAdmin = localStorage.getItem("isAdmin") === "true";
+    if (isAdmin) {
+      const shouldRedirect = window.confirm(
+        "Admins cannot book tickets. You need to log out and log in with a user account. Would you like to go to the logout page?"
+      );
+      if (shouldRedirect) {
+        navigate("/logout");
+      } else {
+        navigate("/");
+      }
+    }
+  }, [navigate]);
 
   // Calculate min and max dates
   const today = new Date();
@@ -89,12 +105,27 @@ const Booking = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    try {
-      if (!localStorage.getItem("userId")) {
-        alert("Please login to book tickets");
-        return;
-      }
+    // Check if user is logged in
+    const userInfo = localStorage.getItem("userId");
+    const isAdmin = localStorage.getItem("isAdmin") === "true";
 
+    if (!userInfo) {
+      alert("Please log in to book tickets");
+      navigate("/auth");
+      return;
+    }
+
+    if (isAdmin) {
+      const shouldRedirect = window.confirm(
+        "Admins cannot book tickets. Would you like to log out and switch to a user account?"
+      );
+      if (shouldRedirect) {
+        navigate("/logout");
+      }
+      return;
+    }
+
+    try {
       const selectedDate = new Date(inputs.date);
       selectedDate.setHours(0, 0, 0, 0);
       
@@ -171,9 +202,18 @@ const Booking = () => {
     >
       {movie && (
         <Fragment>
-          <Typography variant="h3" textAlign="center" gutterBottom fontWeight="bold" sx={{ color: "#FFD700" }}>
-            Book Tickets For: {movie.title}
+          <Typography variant="h4" textAlign={"center"} sx={{ color: "#FFD700" }}>
+            Book Tickets for {movie.title}
           </Typography>
+          <Box sx={{ 
+            display: "flex", 
+            justifyContent: "center", 
+            alignItems: "center",
+            gap: 1,
+            mt: 2 
+          }}>
+           
+          </Box>
           <Grid container spacing={4}>
             <Grid item xs={12} md={5}>
               <Paper elevation={5} sx={{ padding: 2, background: "#000", color: "#fff", borderRadius: 3 }}>

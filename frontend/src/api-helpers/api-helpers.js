@@ -241,3 +241,16 @@ export const getMovieById = async (id) => {
     throw err;
   }
 };
+
+export const getBookingsByMovieId = async (movieId) => {
+  try {
+    const res = await axios.get(`/booking/movie/${movieId}`);
+    if (res.status === 200) {
+      return res.data;
+    }
+    throw new Error('Failed to fetch bookings');
+  } catch (err) {
+    console.error("Error fetching bookings:", err);
+    throw err;
+  }
+};

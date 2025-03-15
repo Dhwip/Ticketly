@@ -112,4 +112,21 @@ router.get('/booked-seats/:movieId/:date', async (req, res) => {
     }
 });
 
+router.get("/movie/:id", async (req, res) => {
+    try {
+        const movieId = req.params.id;
+        const bookings = await Booking.find({ movie: movieId })
+            .populate('user', 'name email')
+            .populate('movie', 'title');
+
+        return res.status(200).json({
+            message: "Bookings fetched successfully",
+            bookings: bookings
+        });
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({ message: "Unable to get bookings", error: err.message });
+    }
+});
+
 export default router;

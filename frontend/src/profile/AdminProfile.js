@@ -1,16 +1,39 @@
-import { Box, Typography, List, ListItem, ListItemText, Avatar } from "@mui/material";
+import { Box, Typography, Grid, Avatar } from "@mui/material";
 import { useEffect, useState } from "react";
 import { getAdminById } from "../api-helpers/api-helpers";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
+import AdminMovieCard from "../components/Admin/AdminMovieCard";
+import axios from "axios";
 
 const AdminProfile = () => {
   const [admin, setAdmin] = useState(null);
 
   useEffect(() => {
+    fetchAdminData();
+  }, []);
+
+  const fetchAdminData = () => {
     getAdminById()
       .then((res) => setAdmin(res.admin))
       .catch(console.error);
-  }, []);
+  };
+
+  const handleDeleteMovie = async (movieId) => {
+    try {
+      const response = await axios.delete(`http://localhost:9000/movie/${movieId}`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+      if (response.status === 200) {
+        // Refresh admin data to update the movies list
+        fetchAdminData();
+      }
+    } catch (error) {
+      console.error("Error deleting movie:", error);
+      alert("Failed to delete movie");
+    }
+  };
 
   return (
     <Box
@@ -38,6 +61,7 @@ const AdminProfile = () => {
             border: "2px solid #FFD700",
             transition: "transform 0.2s ease-in-out",
             "&:hover": { transform: "scale(1.02)" },
+            marginBottom: 4
           }}
         >
           <Avatar sx={{ width: 100, height: 100, backgroundColor: "#FFD700", mb: 2 }}>
@@ -51,9 +75,8 @@ const AdminProfile = () => {
       {admin && admin.addedMovies.length > 0 && (
         <Box
           sx={{
-            mt: 4,
-            width: "85%",
-            maxWidth: "800px",
+            width: "100%",
+            maxWidth: "1200px",
             background: "#2b2d42",
             borderRadius: 3,
             padding: 3,
@@ -64,32 +87,25 @@ const AdminProfile = () => {
             variant="h4"
             textAlign="center"
             fontWeight="bold"
-            mb={2}
+            mb={4}
             sx={{ color: "#FFD700" }}
           >
             🎬 Added Movies
           </Typography>
 
-          <List>
-            {admin.addedMovies.map((movie, index) => (
-              <ListItem
-                key={index}
-                sx={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  background: "#3a3d56",
-                  borderRadius: 2,
-                  padding: 2,
-                  marginBottom: 2,
-                  border: "1px solid #FFD700",
-                  transition: "transform 0.2s ease-in-out",
-                  "&:hover": { transform: "scale(1.02)", background: "#43465a" },
-                }}
-              >
-                <ListItemText primary={`🎥 ${movie.title}`} sx={{ color: "#FFD700" }} />
-              </ListItem>
+          <Grid container spacing={2} justifyContent="center">
+            {admin.addedMovies.map((movie) => (
+              <Grid item key={movie._id}>
+                <AdminMovieCard
+                  id={movie._id}
+                  title={movie.title}
+                  description={movie.description}
+                  posterUrl={movie.posterUrl}
+                  onDelete={() => handleDeleteMovie(movie._id)}
+                />
+              </Grid>
             ))}
-          </List>
+          </Grid>
         </Box>
       )}
     </Box>

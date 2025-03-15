@@ -5,9 +5,12 @@ import {
   FormLabel,
   TextField,
   Typography,
+  Alert,
+  Snackbar,
 } from "@mui/material";
 import React, { useState } from "react";
 import { addMovie } from "../../api-helpers/api-helpers";
+import { useNavigate } from "react-router-dom";
 
 const labelProps = {
   mt: 1,
@@ -16,16 +19,20 @@ const labelProps = {
 };
 
 const AddMovie = () => {
+  const navigate = useNavigate();
   const [inputs, setInputs] = useState({
     title: "",
     description: "",
     posterUrl: "",
     releaseDate: "",
     featured: false,
+    language: "",
   });
-
   const [actors, setActors] = useState([]);
   const [actor, setActor] = useState("");
+  const [openSnackbar, setOpenSnackbar] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState("");
+  const [snackbarSeverity, setSnackbarSeverity] = useState("success");
 
   const handleChange = (e) => {
     setInputs((prevState) => ({
@@ -34,12 +41,79 @@ const AddMovie = () => {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const resetForm = () => {
+    setInputs({
+      title: "",
+      description: "",
+      posterUrl: "",
+      releaseDate: "",
+      featured: false,
+      language: "",
+    });
+    setActors([]);
+    setActor("");
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log(inputs, actors);
-    addMovie({ ...inputs, actors })
-      .then((res) => console.log(res))
-      .catch((err) => console.log(err));
+    
+    // Validate inputs
+    if (!inputs.title.trim()) {
+      setSnackbarMessage("Please enter a movie title");
+      setSnackbarSeverity("error");
+      setOpenSnackbar(true);
+      return;
+    }
+    if (!inputs.description.trim()) {
+      setSnackbarMessage("Please enter a movie description");
+      setSnackbarSeverity("error");
+      setOpenSnackbar(true);
+      return;
+    }
+    if (!inputs.posterUrl.trim()) {
+      setSnackbarMessage("Please enter a poster URL");
+      setSnackbarSeverity("error");
+      setOpenSnackbar(true);
+      return;
+    }
+    if (!inputs.releaseDate) {
+      setSnackbarMessage("Please select a release date");
+      setSnackbarSeverity("error");
+      setOpenSnackbar(true);
+      return;
+    }
+    if (actors.length === 0) {
+      setSnackbarMessage("Please add at least one actor");
+      setSnackbarSeverity("error");
+      setOpenSnackbar(true);
+      return;
+    }
+
+    try {
+      const res = await addMovie({ ...inputs, actors });
+      if (res.movie) {
+        setSnackbarMessage("Movie added successfully! Redirecting to admin profile...");
+        setSnackbarSeverity("success");
+        setOpenSnackbar(true);
+        resetForm();
+        // Redirect to admin profile after 2 seconds
+        setTimeout(() => {
+          navigate("/admin");
+        }, 2000);
+      }
+    } catch (err) {
+      console.error("Error adding movie:", err);
+      setSnackbarMessage(err.message || "Failed to add movie. Please try again.");
+      setSnackbarSeverity("error");
+      setOpenSnackbar(true);
+    }
+  };
+
+  const handleCloseSnackbar = (event, reason) => {
+    if (reason === 'clickaway') {
+      return;
+    }
+    setOpenSnackbar(false);
   };
 
   return (
@@ -68,7 +142,7 @@ const AddMovie = () => {
           "&:hover": { transform: "scale(1.02)" },
         }}
       >
-        <Typography variant="h4" fontWeight="bold" sx={{ color: "#FFD700" }}>
+        <Typography variant="h4" fontWeight="bold" sx={{ color: "#FFD700", mb: 3 }}>
           🎬 Add New Movie
         </Typography>
 
@@ -206,6 +280,25 @@ const AddMovie = () => {
             }}
           />
 
+          <FormLabel sx={labelProps}>Language</FormLabel>
+          <TextField
+            value={inputs.language}
+            onChange={handleChange}
+            name="language"
+            variant="outlined"
+            margin="dense"
+            fullWidth
+            placeholder="e.g., English, Hindi, Spanish"
+            sx={{
+              input: { color: "#fff" },
+              "& .MuiOutlinedInput-root": {
+                "& fieldset": { borderColor: "#FFD700" },
+                "&:hover fieldset": { borderColor: "#FFA500" },
+                "&.Mui-focused fieldset": { borderColor: "#FFD700" },
+              },
+            }}
+          />
+
           <Button
             type="submit"
             variant="contained"
@@ -222,6 +315,21 @@ const AddMovie = () => {
           </Button>
         </form>
       </Box>
+
+      <Snackbar
+        open={openSnackbar}
+        autoHideDuration={6000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert 
+          onClose={handleCloseSnackbar} 
+          severity={snackbarSeverity}
+          sx={{ width: '100%' }}
+        >
+          {snackbarMessage}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };
