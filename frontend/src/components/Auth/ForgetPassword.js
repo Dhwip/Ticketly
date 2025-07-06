@@ -10,7 +10,6 @@ import {
   Alert,
 } from "@mui/material";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
-import { Link } from "react-router-dom";
 import { sendPasswordResetRequest } from "../../api-helpers/api-helpers.js";
 
 const ForgetPassword = ({ onClose }) => {

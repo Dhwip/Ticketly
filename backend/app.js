@@ -94,8 +94,7 @@ app.use((req, res) => {
 // Connect to MongoDB and start server
 const startServer = async () => {
   try {
-    const mongoUri = process.env.MONGODB_URI || 
-      `mongodb+srv://Dhwip:${process.env.DB_PASSWORD || process.env.pass}@cluster0.qrxo2.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
+    const mongoUri = `mongodb+srv://Dhwip:${process.env.pass}@cluster0.qrxo2.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
     
     await mongoose.connect(mongoUri, {
       useNewUrlParser: true,
