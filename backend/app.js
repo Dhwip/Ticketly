@@ -17,15 +17,47 @@ const port = process.env.PORT || 9000;
 
 // Configure CORS based on environment
 const corsOptions = {
-  origin: isProduction 
-    ? [process.env.FRONTEND_URL, process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://your-frontend-domain.vercel.app']
-    : ['http://127.0.0.1:3000', 'http://localhost:3000', process.env.FRONTEND_URL].filter(Boolean),
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    const allowedOrigins = isProduction 
+      ? [
+          'https://ticketly-frontend-phi.vercel.app',
+          'https://ticketly-frontend.vercel.app',
+          process.env.FRONTEND_URL,
+          process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null
+        ].filter(Boolean)
+      : ['http://127.0.0.1:3000', 'http://localhost:3000', process.env.FRONTEND_URL].filter(Boolean);
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      console.log('🚫 CORS blocked origin:', origin);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  optionsSuccessStatus: 200 // Some legacy browsers (IE11, various SmartTVs) choke on 204
 };
 
 app.use(cors(corsOptions));
+
+// Handle preflight requests explicitly
+app.options('*', cors(corsOptions));
+
+// Log CORS configuration in development
+if (!isProduction) {
+  console.log('🔧 CORS Configuration:', {
+    environment: process.env.NODE_ENV || 'development',
+    allowedOrigins: isProduction 
+      ? ['https://ticketly-frontend-phi.vercel.app', 'https://ticketly-frontend.vercel.app']
+      : ['http://127.0.0.1:3000', 'http://localhost:3000'],
+    isProduction
+  });
+}
 
 // Regular middleware
 app.use(express.json({ limit: '10mb' }));
@@ -43,6 +75,16 @@ if (!isProduction) {
 app.get('/health', (req, res) => {
   res.json({ 
     status: 'OK', 
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development'
+  });
+});
+
+// CORS test route
+app.get('/cors-test', (req, res) => {
+  res.json({ 
+    message: 'CORS is working!',
+    origin: req.headers.origin,
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV || 'development'
   });

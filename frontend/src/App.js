@@ -15,6 +15,7 @@ import { ToastContainer } from "react-toastify";
 import PaymentSuccess from "./components/Bookings/PaymentSuccess";
 import PaymentCancel from "./components/Bookings/PaymentCancel";
 import ResetPassword from "./components/Auth/ResetPassword";
+import ApiTest from "./components/ApiTest";
 
 // Protected Route Component
 const ProtectedRoute = ({ children, isLoggedIn, redirectTo = "/" }) => {
@@ -93,6 +94,7 @@ function App() {
           <Route path="/reset-password/:token" element={<ResetPassword />} />
           <Route path="/booking/success" element={<PaymentSuccess />} />
           <Route path="/booking/cancel" element={<PaymentCancel />} />
+          <Route path="/api-test" element={<ApiTest />} />
           
           {/* Auth routes - redirect to home if already logged in */}
           <Route 

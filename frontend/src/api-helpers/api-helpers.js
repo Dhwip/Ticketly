@@ -5,6 +5,19 @@ import { API_BASE_URL } from "../config/config.js";
 axios.defaults.baseURL = API_BASE_URL;
 axios.defaults.headers.post['Content-Type'] = 'application/json';
 
+// Test API connection
+export const testApiConnection = async () => {
+  try {
+    console.log('🔧 Testing API connection to:', API_BASE_URL);
+    const res = await axios.get('/health');
+    console.log('✅ API connection successful:', res.data);
+    return res.data;
+  } catch (err) {
+    console.error('❌ API connection failed:', err);
+    throw err;
+  }
+};
+
 export const getAllMovies = async () => {
   try {
     const res = await axios.get("/movie");
@@ -16,6 +29,9 @@ export const getAllMovies = async () => {
 
 export const sendUserAuthRequest = async (data, signup) => {
   try {
+    console.log('🔧 Making auth request to:', `${API_BASE_URL}/user/${signup ? "signup" : "login"}`);
+    console.log('🔧 Request data:', { email: data.email, hasPassword: !!data.password });
+    
     const res = await axios.post(`/user/${signup ? "signup" : "login"}`, {
       name: signup ? data.name : "",
       email: data.email,

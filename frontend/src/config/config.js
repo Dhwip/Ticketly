@@ -5,7 +5,7 @@ const config = {
     stripePublishableKey: process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY || 'pk_test_your_stripe_publishable_key'
   },
   production: {
-    apiUrl: process.env.REACT_APP_API_URL || '/api',
+    apiUrl: process.env.REACT_APP_API_URL || 'https://ticketly-backend.vercel.app',
     stripePublishableKey: process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY || 'pk_test_your_stripe_publishable_key'
   },
   test: {
@@ -21,6 +21,15 @@ export const STRIPE_PUBLISHABLE_KEY = config[environment].stripePublishableKey;
 // Log configuration in development
 if (environment === 'development') {
   console.log('🔧 Frontend Configuration:', {
+    environment,
+    apiUrl: API_BASE_URL,
+    hasStripeKey: !!STRIPE_PUBLISHABLE_KEY
+  });
+}
+
+// Log configuration in production too for debugging
+if (environment === 'production') {
+  console.log('🔧 Frontend Configuration (Production):', {
     environment,
     apiUrl: API_BASE_URL,
     hasStripeKey: !!STRIPE_PUBLISHABLE_KEY
