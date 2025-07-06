@@ -170,7 +170,7 @@ export const requestPasswordReset = async (req, res, next) => {
     await user.save();
 
     // Create reset URL
-    const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password/${resetToken}`;
+    const resetUrl = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`;
 
     // Send email
     await sendPasswordResetEmail(email, resetToken, resetUrl);
