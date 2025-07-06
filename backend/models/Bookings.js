@@ -19,6 +19,26 @@ const bookingSchema = new mongoose.Schema({
     ref: "User",
     required: true,
   },
+  theater: {
+    name: {
+      type: String,
+      required: true
+    },
+    location: {
+      type: String,
+      required: true
+    }
+  },
+  timeSlot: {
+    time: {
+      type: String,
+      required: true
+    },
+    price: {
+      type: Number,
+      required: true
+    }
+  },
   paymentInfo: {
     sessionId: {
       type: String,

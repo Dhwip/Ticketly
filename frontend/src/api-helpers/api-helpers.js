@@ -16,36 +16,60 @@ export const getAllMovies = async () => {
 };
 
 export const sendUserAuthRequest = async (data, signup) => {
-  const res = await axios
-    .post(`/user/${signup ? "signup" : "login"}`, {
+  try {
+    const res = await axios.post(`/user/${signup ? "signup" : "login"}`, {
       name: signup ? data.name : "",
       email: data.email,
       password: data.password,
-    })
-    .catch((err) => console.log(err));
+    });
 
-  if (res.status !== 200 && res.status !== 201) {
-    console.log("Unexpected Error Occurred");
+    if (res.status !== 200 && res.status !== 201) {
+      throw new Error("Authentication failed");
+    }
+
+    const resData = await res.data;
+    
+    // Store user token and ID with consistent keys
+    if (resData.token) {
+      localStorage.setItem("token", resData.token);
+      localStorage.setItem("id", resData.id);
+      // Also store user-specific data
+      localStorage.setItem("userToken", resData.token);
+      localStorage.setItem("userId", resData.id);
+    }
+
+    return resData;
+  } catch (err) {
+    console.error("User authentication error:", err);
+    throw err;
   }
-
-  const resData = await res.data;
-  return resData;
 };
 
 export const sendAdminAuthRequest = async (data) => {
-  const res = await axios
-    .post("/admin/login", {
+  try {
+    const res = await axios.post("/admin/login", {
       email: data.email,
       password: data.password,
-    })
-    .catch((err) => console.log(err));
+    });
 
-  if (res.status !== 200) {
-    return console.log("Unexpectyed Error");
+    if (res.status !== 200) {
+      throw new Error("Login failed");
+    }
+
+    const resData = await res.data;
+    
+    // Store the token and admin ID with consistent keys
+    if (resData.token) {
+      localStorage.setItem("adminToken", resData.token);
+      localStorage.setItem("adminId", resData.id);
+      localStorage.setItem("token", resData.token);
+    }
+
+    return resData;
+  } catch (err) {
+    console.error("Admin login error:", err);
+    throw err;
   }
-
-  const resData = await res.data;
-  return resData;
 };
 
 export const getMovieDetails = async (id) => {
@@ -90,16 +114,23 @@ export const getUserBooking = async () => {
 };
 
 export const deleteBooking = async (id) => {
-  const res = await axios
-    .delete(`/booking/${id}`)
-    .catch((err) => console.log(err));
+  try {
+    const res = await axios.delete(`/booking/${id}`);
+    
+    if (res.status !== 200) {
+      throw new Error("Failed to delete booking");
+    }
 
-  if (res.status !== 200) {
-    return console.log("Unepxected Error");
+    return res.data;
+  } catch (err) {
+    console.error("Delete booking error:", err);
+    
+    if (err.response?.data?.message) {
+      throw new Error(err.response.data.message);
+    }
+    
+    throw new Error(err.message || "Failed to delete booking");
   }
-
-  const resData = await res.data;
-  return resData;
 };
 
 export const getUserDetails = async () => {
@@ -112,33 +143,52 @@ export const getUserDetails = async () => {
   return resData;
 };
 
-export const addMovie = async (data) => {
-  const res = await axios
-    .post(
+export const addMovie = async (inputs) => {
+  try {
+    const token = localStorage.getItem("adminToken");
+    const adminId = localStorage.getItem("adminId");
+
+    if (!token || !adminId) {
+      throw new Error("Admin authentication required");
+    }
+
+    // Log the token for debugging (remove in production)
+    console.log("Token:", token);
+    console.log("Admin ID:", adminId);
+
+    const response = await axios.post(
       "/movie",
       {
-        title: data.title,
-        description: data.description,
-        releaseDate: data.releaseDate,
-        posterUrl: data.posterUrl,
-        fetaured: data.fetaured,
-        actors: data.actors,
-        admin: localStorage.getItem("adminId"),
+        ...inputs,
+        admin: adminId,
       },
       {
         headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
         },
       }
-    )
-    .catch((err) => console.log(err));
+    );
 
-  if (res.status !== 201) {
-    return console.log("Unexpected Error Occurred");
+    if (response.status !== 201) {
+      throw new Error("Failed to add movie");
+    }
+
+    return response.data;
+  } catch (error) {
+    console.error("Error adding movie:", error);
+    
+    if (error.response?.status === 401) {
+      // Instead of removing tokens, just throw an error
+      throw new Error("Invalid or expired session. Please try logging in again.");
+    }
+    
+    if (error.response?.data?.message) {
+      throw new Error(error.response.data.message);
+    }
+    
+    throw new Error(error.message || "Failed to add movie. Please try again.");
   }
-
-  const resData = await res.data;
-  return resData;
 };
 
 export const getAdminById = async () => {
@@ -155,51 +205,97 @@ export const getAdminById = async () => {
   return resData;
 };
 
-export const createPaymentSession = async (selectedSeats, movieTitle, movieId, date) => {
+export const getAdminData = async () => {
+  const adminId = localStorage.getItem("adminId");
+  const res = await axios
+    .get(`/admin/${adminId}`)
+    .catch((err) => console.log(err));
+
+  if (res.status !== 200) {
+    return console.log("Unexpected Error Occurred");
+  }
+
+  const resData = await res.data;
+  return resData;
+};
+
+export const getUserBookings = async (userId) => {
+  const res = await axios
+    .get(`/user/bookings/${userId}`)
+    .catch((err) => console.log(err));
+
+  if (res.status !== 200) {
+    return console.log("Unexpected Error");
+  }
+  const resData = await res.data;
+  return resData.bookings || [];
+};
+
+export const createPaymentSession = async (seatNumbers, movieTitle, movieId, date, theater, timeSlot) => {
   try {
-    console.log('Creating payment session for:', { selectedSeats, movieTitle, movieId, date });
+    // Get user ID from localStorage
+    const userId = localStorage.getItem("userId") || localStorage.getItem("id");
     
-    // Validate inputs
-    if (!selectedSeats || selectedSeats.length === 0) {
-      throw new Error('Please select at least one seat');
-    }
-    if (!movieTitle || !movieId) {
-      throw new Error('Movie details are missing');
-    }
-    if (!date) {
-      throw new Error('Please select a booking date');
-    }
-    
-    const userId = localStorage.getItem("userId");
-    if (!userId) {
-      throw new Error('Please login to book tickets');
-    }
-
-    // Calculate total amount (150 INR per seat)
-    const totalAmount = selectedSeats.length * 150;
-
-    const res = await axios.post("/payment/create-checkout-session", {
-      selectedSeats,
+    // Log the request data for debugging
+    console.log("Creating payment session with data:", {
+      seatNumbers,
       movieTitle,
       movieId,
-      userId,
       date,
-      totalAmount
+      theater,
+      timeSlot,
+      userId
     });
-    
-    console.log('Payment session created:', res.data);
 
-    // Store session ID for verification
-    localStorage.setItem('stripeSessionId', res.data.sessionId);
-    
-    return {
-      url: res.data.url,
-      sessionId: res.data.sessionId,
-      testCard: res.data.testCard
+    // Ensure the data structure is correct
+    const requestData = {
+      seatNumbers,
+      movieTitle,
+      movieId,
+      date,
+      theater: {
+        name: theater.name,
+        location: theater.location
+      },
+      timeSlot: {
+        time: timeSlot.time,
+        price: timeSlot.price
+      },
+      userId
     };
+
+    const response = await axios.post(
+      "/payment/create-session",
+      requestData,
+      {
+        headers: {
+          "Content-Type": "application/json"
+        }
+      }
+    );
+
+    if (!response.data || !response.data.url) {
+      throw new Error("Invalid response from payment server");
+    }
+
+    // Store the session ID for later verification
+    if (response.data.sessionId) {
+      localStorage.setItem('stripeSessionId', response.data.sessionId);
+    }
+
+    return response.data;
   } catch (error) {
-    console.error("Payment error:", error.response || error);
-    throw error;
+    console.error("Payment session creation error:", error);
+    
+    if (error.response?.status === 401) {
+      throw new Error("Session expired. Please login again.");
+    }
+    
+    if (error.response?.data?.message) {
+      throw new Error(error.response.data.message);
+    }
+    
+    throw new Error(error.message || "Failed to create payment session. Please try again.");
   }
 };
 
@@ -211,7 +307,7 @@ export const verifyPayment = async () => {
     }
 
     console.log('Verifying payment for session:', sessionId);
-    const res = await axios.get(`${axios.defaults.baseURL}/payment/verify-payment/${sessionId}`);
+    const res = await axios.get(`/payment/verify-payment/${sessionId}`);
     console.log('Payment verification result:', res.data);
     
     return res.data;
@@ -251,6 +347,36 @@ export const getBookingsByMovieId = async (movieId) => {
     throw new Error('Failed to fetch bookings');
   } catch (err) {
     console.error("Error fetching bookings:", err);
+    throw err;
+  }
+};
+
+export const sendPasswordResetRequest = async (email) => {
+  try {
+    const res = await axios.post("/user/forgot-password", { email });
+    return res.data;
+  } catch (err) {
+    console.error("Password reset request error:", err);
+    throw err;
+  }
+};
+
+export const resetPassword = async (token, newPassword) => {
+  try {
+    const res = await axios.post("/user/reset-password", { token, newPassword });
+    return res.data;
+  } catch (err) {
+    console.error("Password reset error:", err);
+    throw err;
+  }
+};
+
+export const verifyResetToken = async (token) => {
+  try {
+    const res = await axios.get(`/user/verify-reset-token/${token}`);
+    return res.data;
+  } catch (err) {
+    console.error("Token verification error:", err);
     throw err;
   }
 };

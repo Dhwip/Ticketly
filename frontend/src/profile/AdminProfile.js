@@ -1,12 +1,14 @@
-import { Box, Typography, Grid, Avatar } from "@mui/material";
+import { Box, Typography, Grid, Avatar, Button } from "@mui/material";
 import { useEffect, useState } from "react";
 import { getAdminById } from "../api-helpers/api-helpers";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import AdminMovieCard from "../components/Admin/AdminMovieCard";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
 const AdminProfile = () => {
   const [admin, setAdmin] = useState(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchAdminData();
@@ -33,6 +35,10 @@ const AdminProfile = () => {
       console.error("Error deleting movie:", error);
       alert("Failed to delete movie");
     }
+  };
+
+  const handleBackToHome = () => {
+    navigate("/", { replace: true });
   };
 
   return (
@@ -69,6 +75,18 @@ const AdminProfile = () => {
           </Avatar>
           <Typography variant="h5" fontWeight="bold">{admin.name}</Typography>
           <Typography variant="body1" sx={{ opacity: 0.8 }}>{admin.email}</Typography>
+          <Button
+            variant="contained"
+            onClick={handleBackToHome}
+            sx={{
+              mt: 2,
+              bgcolor: "#FFD700",
+              color: "#000",
+              "&:hover": { bgcolor: "#FFA500" },
+            }}
+          >
+            Back to Home
+          </Button>
         </Box>
       )}
 

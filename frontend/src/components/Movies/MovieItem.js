@@ -6,12 +6,43 @@ import {
   Typography,
   Box,
   Chip,
+  Snackbar,
+  Alert,
 } from "@mui/material";
-import React from "react";
-import { Link } from "react-router-dom";
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 const MovieItem = ({ title, releaseDate, posterUrl, id, language }) => {
-  console.log("MovieItem ID:", id);
+  const navigate = useNavigate();
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: '',
+    severity: 'warning'
+  });
+
+  const handleBookNow = (e) => {
+    e.preventDefault();
+    const userId = localStorage.getItem("userId");
+    console.log("Auth check - userId:", userId); // Debug log
+    
+    if (!userId) {
+      console.log("User not authenticated, redirecting to auth"); // Debug log
+      setSnackbar({
+        open: true,
+        message: 'Please login to book tickets',
+        severity: 'warning'
+      });
+      setTimeout(() => {
+        navigate("/auth");
+      }, 2000);
+      return;
+    }
+
+    // User is authenticated, navigate to booking page
+    console.log("User authenticated, navigating to booking page"); // Debug log
+    navigate(`/booking/${id}`);
+  };
+
   return (
     <Card
       sx={{
@@ -56,8 +87,7 @@ const MovieItem = ({ title, releaseDate, posterUrl, id, language }) => {
         <Button
           variant="contained"
           fullWidth
-          LinkComponent={Link}
-          to={`/booking/${id}`}
+          onClick={handleBookNow}
           sx={{
             margin: "auto",
             bgcolor: "#2b2d42",
@@ -70,6 +100,27 @@ const MovieItem = ({ title, releaseDate, posterUrl, id, language }) => {
           Book Now
         </Button>
       </CardActions>
+
+      <Snackbar 
+        open={snackbar.open} 
+        autoHideDuration={2000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert 
+          onClose={() => setSnackbar({ ...snackbar, open: false })} 
+          severity={snackbar.severity}
+          sx={{ 
+            width: '100%',
+            '& .MuiAlert-message': {
+              fontSize: '1rem',
+              fontWeight: '500'
+            }
+          }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Card>
   );
 };

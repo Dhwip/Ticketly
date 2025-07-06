@@ -41,7 +41,7 @@ const PaymentSuccess = () => {
         const result = await verifyPayment();
         console.log('Payment verification result:', result);
         
-        if (result && result.status === 'paid') {
+        if (result && result.status === 'success') {
           setLoading(false);
 
           const booking = result.booking;
@@ -51,7 +51,10 @@ const PaymentSuccess = () => {
             date: new Date(booking.date).toDateString(),
             seatNumbers: Array.isArray(booking.seatNumbers) 
               ? booking.seatNumbers.join(", ")
-              : booking.seatNumbers
+              : booking.seatNumbers,
+            theater: booking.theater,
+            timeSlot: booking.timeSlot,
+            paymentInfo: booking.paymentInfo
           });
 
           // If we only have movie ID, fetch the movie details
@@ -165,10 +168,10 @@ const PaymentSuccess = () => {
                   <strong>Date:</strong> {bookingDetails.date}
                 </Typography>
                 <Typography sx={{ color: '#fff', mb: 1 }}>
-                  <strong>Show Time:</strong> 21:00 (9:00 PM)
+                  <strong>Show Time:</strong> {bookingDetails.timeSlot.time}
                 </Typography>
                 <Typography sx={{ color: '#fff', mb: 1 }}>
-                  <strong>Location:</strong> Vanilla Cinemas, Ahmedabad
+                  <strong>Location:</strong> {bookingDetails.theater.name}, {bookingDetails.theater.location}
                 </Typography>
                 <Typography sx={{ color: '#fff', mb: 2 }}>
                   <strong>Seats:</strong> {bookingDetails.seatNumbers}
@@ -179,6 +182,40 @@ const PaymentSuccess = () => {
               </>
             )}
           </Paper>
+          <Box sx={{ mt: 4, textAlign: "center" }}>
+            <Typography variant="h5" sx={{ color: "#FFD700", mb: 2 }}>
+              Booking Summary
+            </Typography>
+            <Box sx={{ 
+              display: "flex", 
+              flexDirection: "column", 
+              gap: 1,
+              alignItems: "center",
+              p: 3,
+              bgcolor: "#2b2d42",
+              borderRadius: 2,
+              border: "1px solid #FFD700"
+            }}>
+              <Typography variant="h6" sx={{ color: "#FFD700" }}>
+                {bookingDetails?.movieTitle}
+              </Typography>
+              <Typography>
+                Date: {bookingDetails?.date}
+              </Typography>
+              <Typography>
+                Theater: {bookingDetails?.theater.name} - {bookingDetails?.theater.location}
+              </Typography>
+              <Typography>
+                Time: {bookingDetails?.timeSlot.time}
+              </Typography>
+              <Typography>
+                Seats: {bookingDetails?.seatNumbers}
+              </Typography>
+              <Typography>
+                Total Amount: ₹{bookingDetails?.paymentInfo.amount}
+              </Typography>
+            </Box>
+          </Box>
           <Typography 
             variant="caption" 
             sx={{ 

@@ -8,21 +8,27 @@ const userSclice = createSlice({
       state.isLoggedIn = true;
     },
     logout(state) {
+      // Clear all user-related localStorage items
       localStorage.removeItem("userId");
+      localStorage.removeItem("userToken");
+      localStorage.removeItem("token");
+      localStorage.removeItem("id");
       state.isLoggedIn = false;
     },
   },
 });
 
 const adminSlice = createSlice({
-  name: "auth",
+  name: "admin",
   initialState: { isLoggedIn: false },
   reducers: {
     login(state) {
       state.isLoggedIn = true;
     },
     logout(state) {
+      // Clear all admin-related localStorage items
       localStorage.removeItem("adminId");
+      localStorage.removeItem("adminToken");
       localStorage.removeItem("token");
       state.isLoggedIn = false;
     },
@@ -32,9 +38,11 @@ const adminSlice = createSlice({
 export const userActions = userSclice.actions;
 export const adminActions = adminSlice.actions;
 
-export const store = configureStore({
+const store = configureStore({
   reducer: {
     user: userSclice.reducer,
     admin: adminSlice.reducer,
   },
 });
+
+export default store;

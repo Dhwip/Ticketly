@@ -1,121 +1,182 @@
-import { Box } from "@mui/system";
 import React, { useEffect, useState } from "react";
-import PersonRoundedIcon from "@mui/icons-material/PersonRounded";
-import { DeleteForeverOutlined } from "@mui/icons-material/";
-import { IconButton, List, ListItem, ListItemText, Typography, Dialog, DialogActions, DialogTitle, Button, CircularProgress } from "@mui/material";
-import { deleteBooking, getUserBookings } from "../../helpers/api-helpers";
-import { toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
+import { useSelector } from "react-redux";
+import { Box, Typography, Card, CardContent, Button, Grid, Chip, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle } from "@mui/material";
+import { deleteBooking, getUserBookings } from "../../api-helpers/api-helpers";
+import { useNavigate } from "react-router-dom";
+import DeleteForeverIcon from "@mui/icons-material/DeleteForever";
+import HistoryIcon from "@mui/icons-material/History";
 
 const User = () => {
   const [bookings, setBookings] = useState([]);
-  const [deleteId, setDeleteId] = useState(null); 
-  const [loading, setLoading] = useState(false); 
-  const [openDialog, setOpenDialog] = useState(false); 
+  const [openDialog, setOpenDialog] = useState(false);
+  const [selectedBooking, setSelectedBooking] = useState(null);
+  const [message, setMessage] = useState("");
+  const navigate = useNavigate();
+  const userId = useSelector((state) => state.user.userId);
 
   useEffect(() => {
-    getUserBookings()
-      .then((res) => setBookings(res.bookings))
-      .catch((err) => console.log(err));
-  }, []);
+    if (userId) {
+      getUserBookings(userId)
+        .then((data) => {
+          // Sort bookings by date (latest first)
+          const sortedBookings = data.sort((a, b) => new Date(b.date) - new Date(a.date));
+          setBookings(sortedBookings);
+        })
+        .catch((err) => console.log(err));
+    }
+  }, [userId]);
 
-  const handleDelete = async () => {
-    setLoading(true);
-    deleteBooking(deleteId)
-      .then(() => {
-        toast.success("Booking deleted successfully!", {
-          position: "top-right",
-          autoClose: 3000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-          theme: "dark",
-        });
+  // Function to check if a booking is in the past
+  const isPastBooking = (bookingDate) => {
+    const booking = new Date(bookingDate);
+    const current = new Date();
+    return booking < current;
+  };
 
-        setBookings((prevBookings) => prevBookings.filter((booking) => booking._id !== deleteId));
-      })
-      .catch(() => {
-        toast.error("Failed to delete booking.");
-      })
-      .finally(() => {
-        setLoading(false);
+  const handleDeleteBooking = (bookingId) => {
+    setSelectedBooking(bookingId);
+    setOpenDialog(true);
+  };
+
+  const confirmDelete = async () => {
+    if (selectedBooking) {
+      try {
+        const response = await deleteBooking(selectedBooking);
+        // Remove the booking and maintain sorted order
+        const updatedBookings = bookings
+          .filter(booking => booking._id !== selectedBooking)
+          .sort((a, b) => new Date(b.date) - new Date(a.date));
+        setBookings(updatedBookings);
+        setMessage(response.message || "Booking cancelled successfully");
+      } catch (err) {
+        console.log(err);
+        setMessage("Failed to delete booking");
+      } finally {
         setOpenDialog(false);
-      });
+      }
+    }
   };
 
   return (
-    <Box width="100%" display={"flex"} flexDirection={{ xs: "column", md: "row" }} padding={2}>
-      {/* User Profile Section */}
-      <Box display="flex" flexDirection={"column"} justifyContent="center" alignItems={"center"} width={{ xs: "100%", md: "30%" }} padding={2}>
-        <PersonRoundedIcon sx={{ fontSize: "15rem", color: "#1976d2" }} />
+    <Box sx={{ padding: 3 }}>
+      <Typography variant="h4" gutterBottom sx={{ color: "#FFD700" }}>
+        My Bookings
+      </Typography>
+
+      {message && (
         <Typography
-          padding={1}
-          width="150px"
-          textAlign={"center"}
-          border="1px solid #ccc"
-          borderRadius={10}
-          fontWeight="bold"
-          bgcolor="#f5f5f5"
+          sx={{
+            backgroundColor: "rgba(255, 215, 0, 0.2)",
+            color: "#FFD700",
+            padding: "8px",
+            borderRadius: "5px",
+            mb: 2,
+            textAlign: "center"
+          }}
         >
-          {bookings.length > 0 ? `Name: ${bookings[0].user.name}` : "No User Found"}
+          {message}
         </Typography>
-      </Box>
-
-      {/* Booking List Section */}
-      <Box width={{ xs: "100%", md: "70%" }} display="flex" flexDirection={"column"} padding={2}>
-        <Typography variant="h4" fontFamily={"Verdana"} textAlign="center" padding={2} fontWeight="bold">
-          Your Bookings
-        </Typography>
-        
-        {bookings.length > 0 ? (
-          <List sx={{ width: "90%", margin: "auto", bgcolor: "white", borderRadius: "10px", boxShadow: "0 4px 8px rgba(0,0,0,0.1)" }}>
-            {bookings.map((booking, index) => (
-              <ListItem
-                sx={{
-                  bgcolor: "#f5f5f5",
-                  color: "black",
-                  textAlign: "center",
-                  margin: "8px 0",
-                  borderRadius: "8px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  padding: "10px",
-                }}
-                key={index}
-              >
-                <ListItemText primary={`Movie: ${booking.movie.title}`} secondary={`Seat: ${booking.seatNumber} | Date: ${new Date(booking.date).toDateString()}`} />
-
-                <IconButton
-                  onClick={() => {
-                    setDeleteId(booking._id);
-                    setOpenDialog(true);
-                  }}
-                  color="error"
-                  disabled={loading}
-                >
-                  {loading && deleteId === booking._id ? <CircularProgress size={24} /> : <DeleteForeverOutlined />}
-                </IconButton>
-              </ListItem>
-            ))}
-          </List>
-        ) : (
-          <Typography textAlign="center" color="gray" fontSize="1.2rem" padding={3}>
-            No bookings found. Book your favorite movies now!
+      )}
+      
+      {bookings.length === 0 ? (
+        <Card sx={{ bgcolor: "#2b2d42", color: "#fff", p: 3 }}>
+          <Typography variant="h6" textAlign="center">
+            No bookings found. Start by booking a movie!
           </Typography>
-        )}
-      </Box>
+          <Box sx={{ textAlign: "center", mt: 2 }}>
+            <Button
+              variant="contained"
+              onClick={() => navigate("/movies")}
+              sx={{
+                bgcolor: "#FFD700",
+                color: "#000",
+                "&:hover": { bgcolor: "#FFA500" },
+              }}
+            >
+              Browse Movies
+            </Button>
+          </Box>
+        </Card>
+      ) : (
+        <Grid container spacing={3}>
+          {bookings.map((booking) => {
+            const isPast = isPastBooking(booking.date);
+            
+            return (
+              <Grid item xs={12} md={6} lg={4} key={booking._id}>
+                <Card sx={{ 
+                  bgcolor: isPast ? "#2a2a2a" : "#2b2d42", 
+                  color: "#fff",
+                  opacity: isPast ? 0.8 : 1,
+                  border: isPast ? "1px solid #666" : "1px solid #FFD700"
+                }}>
+                  <CardContent>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                      <Typography variant="h6" sx={{ color: "#FFD700" }}>
+                        {booking.movie?.title || "Movie Title"}
+                      </Typography>
+                      {isPast && (
+                        <Chip 
+                          label="Past Booking" 
+                          size="small" 
+                          sx={{ 
+                            backgroundColor: "#666", 
+                            color: "#fff",
+                            fontSize: "0.7rem"
+                          }} 
+                        />
+                      )}
+                    </Box>
+                    <Typography variant="body2" sx={{ mb: 1 }}>
+                      <strong>Date:</strong> {new Date(booking.date).toLocaleDateString()}
+                    </Typography>
+                    <Typography variant="body2" sx={{ mb: 1 }}>
+                      <strong>Seat Number:</strong> {booking.seatNumber}
+                    </Typography>
+                    <Typography variant="body2" sx={{ mb: 2 }}>
+                      <strong>Status:</strong> {booking.status}
+                    </Typography>
+                    <Button
+                      variant="outlined"
+                      startIcon={isPast ? <HistoryIcon /> : <DeleteForeverIcon />}
+                      onClick={() => handleDeleteBooking(booking._id)}
+                      sx={{
+                        borderColor: isPast ? "#666" : "#f44336",
+                        color: isPast ? "#666" : "#f44336",
+                        "&:hover": { 
+                          borderColor: isPast ? "#999" : "#d32f2f", 
+                          color: isPast ? "#999" : "#d32f2f" 
+                        },
+                      }}
+                    >
+                      {isPast ? "Remove from History" : "Cancel Booking"}
+                    </Button>
+                  </CardContent>
+                </Card>
+              </Grid>
+            );
+          })}
+        </Grid>
+      )}
 
-      {/* Confirmation Dialog for Delete */}
+      {/* Confirmation Dialog */}
       <Dialog open={openDialog} onClose={() => setOpenDialog(false)}>
-        <DialogTitle>Are you sure you want to delete this booking?</DialogTitle>
+        <DialogTitle>Confirm Action</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            {selectedBooking && bookings.find(b => b._id === selectedBooking) && 
+             isPastBooking(bookings.find(b => b._id === selectedBooking).date)
+              ? "Are you sure you want to remove this past booking from your history?"
+              : "Are you sure you want to cancel this booking? This will initiate a refund process."
+            }
+          </DialogContentText>
+        </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenDialog(false)} color="primary">
-            Cancel
+            No
           </Button>
-          <Button onClick={handleDelete} color="error" variant="contained" disabled={loading}>
-            {loading ? <CircularProgress size={24} color="inherit" /> : "Delete"}
+          <Button onClick={confirmDelete} color="error" variant="contained">
+            Yes
           </Button>
         </DialogActions>
       </Dialog>

@@ -15,6 +15,14 @@ const userSchema = new Schema({
     required: true,
     minLength: 6,
   },
+  resetToken: {
+    type: String,
+    default: null,
+  },
+  resetTokenExpiry: {
+    type: Date,
+    default: null,
+  },
   bookings: [{ type: mongoose.Types.ObjectId, ref: "Booking" }],
 });
 

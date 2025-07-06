@@ -1,6 +1,8 @@
 import User from "../models/User.js";
 import bcrypt from "bcryptjs";
 import Bookings from "../models/Bookings.js";
+import crypto from "crypto";
+import { sendPasswordResetEmail } from "../utils/emailService.js";
 export const getAllUsers = async (req, res, next) => {
   let users;
   try {
@@ -139,4 +141,109 @@ export const getUserById = async (req, res, next) => {
     return res.status(500).json({ message: "Unexpected Error Occured" });
   }
   return res.status(200).json({ user });
+};
+
+export const requestPasswordReset = async (req, res, next) => {
+  const { email } = req.body;
+  
+  if (!email || email.trim() === "") {
+    return res.status(422).json({ message: "Email is required" });
+  }
+
+  try {
+    const user = await User.findOne({ email });
+    
+    if (!user) {
+      // Don't reveal if user exists or not for security
+      return res.status(200).json({ 
+        message: "If an account with that email exists, a password reset link has been sent." 
+      });
+    }
+
+    // Generate reset token
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const resetTokenExpiry = new Date(Date.now() + 3600000); // 1 hour from now
+
+    // Save reset token to user
+    user.resetToken = resetToken;
+    user.resetTokenExpiry = resetTokenExpiry;
+    await user.save();
+
+    // Create reset URL
+    const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password/${resetToken}`;
+
+    // Send email
+    await sendPasswordResetEmail(email, resetToken, resetUrl);
+
+    return res.status(200).json({ 
+      message: "If an account with that email exists, a password reset link has been sent." 
+    });
+
+  } catch (err) {
+    console.error('Password reset request error:', err);
+    return res.status(500).json({ message: "An error occurred while processing your request" });
+  }
+};
+
+export const resetPassword = async (req, res, next) => {
+  const { token, newPassword } = req.body;
+  
+  if (!token || !newPassword || newPassword.trim() === "") {
+    return res.status(422).json({ message: "Token and new password are required" });
+  }
+
+  if (newPassword.length < 6) {
+    return res.status(422).json({ message: "Password must be at least 6 characters long" });
+  }
+
+  try {
+    const user = await User.findOne({ 
+      resetToken: token, 
+      resetTokenExpiry: { $gt: Date.now() } 
+    });
+
+    if (!user) {
+      return res.status(400).json({ message: "Invalid or expired reset token" });
+    }
+
+    // Hash new password
+    const hashedPassword = bcrypt.hashSync(newPassword);
+
+    // Update user password and clear reset token
+    user.password = hashedPassword;
+    user.resetToken = null;
+    user.resetTokenExpiry = null;
+    await user.save();
+
+    return res.status(200).json({ message: "Password has been reset successfully" });
+
+  } catch (err) {
+    console.error('Password reset error:', err);
+    return res.status(500).json({ message: "An error occurred while resetting your password" });
+  }
+};
+
+export const verifyResetToken = async (req, res, next) => {
+  const { token } = req.params;
+  
+  if (!token) {
+    return res.status(422).json({ message: "Token is required" });
+  }
+
+  try {
+    const user = await User.findOne({ 
+      resetToken: token, 
+      resetTokenExpiry: { $gt: Date.now() } 
+    });
+
+    if (!user) {
+      return res.status(400).json({ message: "Invalid or expired reset token" });
+    }
+
+    return res.status(200).json({ message: "Token is valid" });
+
+  } catch (err) {
+    console.error('Token verification error:', err);
+    return res.status(500).json({ message: "An error occurred while verifying the token" });
+  }
 };

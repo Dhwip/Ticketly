@@ -14,19 +14,46 @@ router.get('/test', (req, res) => {
     res.json({ message: 'Payment router is working' });
 });
 
-router.post('/create-checkout-session', async (req, res) => {
+router.post('/create-session', async (req, res) => {
     try {
-        const { selectedSeats, movieTitle, userId, movieId, date, totalAmount } = req.body;
-        console.log('Received request:', { selectedSeats, movieTitle, userId, movieId, date, totalAmount });
+        const { seatNumbers, movieTitle, movieId, date, theater, timeSlot, userId } = req.body;
 
-        if (!selectedSeats || !movieTitle || !userId || !movieId || !date) {
-            return res.status(400).json({ 
-                error: 'Missing required fields',
-                received: { selectedSeats, movieTitle, userId, movieId, date }
-            });
-        }
+        // Log the received data for debugging
+        console.log('Received booking data:', {
+            seatNumbers,
+            movieTitle,
+            movieId,
+            date,
+            theater,
+            timeSlot,
+            userId
+        });
 
-        // Create a Stripe checkout session
+        // Calculate total amount
+        const totalAmount = seatNumbers.length * timeSlot.price;
+
+        // Create a new booking with payment info
+        const booking = new Booking({
+            movie: movieId,
+            seatNumbers,
+            date: new Date(date),
+            user: userId,
+            theater: {
+                name: theater.name,
+                location: theater.location
+            },
+            timeSlot: {
+                time: timeSlot.time,
+                price: timeSlot.price
+            },
+            paymentInfo: {
+                amount: totalAmount,
+                sessionId: '', // Will be updated after Stripe session creation
+                status: 'pending'
+            }
+        });
+
+        // Create Stripe session
         const session = await stripe.checkout.sessions.create({
             payment_method_types: ['card'],
             line_items: [
@@ -34,109 +61,89 @@ router.post('/create-checkout-session', async (req, res) => {
                     price_data: {
                         currency: 'inr',
                         product_data: {
-                            name: `Movie Tickets for ${movieTitle}`,
-                            description: `${selectedSeats.length} seat(s) for ${new Date(date).toLocaleDateString()}`,
+                            name: movieTitle,
+                            description: `${theater.name} - ${theater.location} - ${timeSlot.time}`,
                         },
-                        unit_amount: 15000, // 150 INR in paise
+                        unit_amount: timeSlot.price * 100, // Convert to paise
                     },
-                    quantity: selectedSeats.length,
+                    quantity: seatNumbers.length,
                 },
             ],
             mode: 'payment',
             success_url: `${process.env.FRONTEND_URL}/booking/success?session_id={CHECKOUT_SESSION_ID}`,
             cancel_url: `${process.env.FRONTEND_URL}/booking/cancel`,
             metadata: {
-                selectedSeats: JSON.stringify(selectedSeats),
+                bookingId: booking._id.toString(),
                 movieId,
-                userId,
+                seatNumbers: JSON.stringify(seatNumbers),
                 date,
-                totalAmount: (selectedSeats.length * 150).toString()
+                theater: JSON.stringify(theater),
+                timeSlot: JSON.stringify(timeSlot),
+                userId
             }
         });
 
-        console.log('Created session:', session.id);
-        res.status(200).json({ 
-            url: session.url, 
-            sessionId: session.id,
-            testCard: {
-                number: '4242 4242 4242 4242',
-                expiry: 'Any future date',
-                cvc: 'Any 3 digits',
-                zip: 'Any 5 digits'
-            }
+        // Update booking with Stripe session ID
+        booking.paymentInfo.sessionId = session.id;
+        await booking.save();
+
+        return res.status(200).json({
+            url: session.url,
+            sessionId: session.id
         });
     } catch (error) {
-        console.error('Error creating checkout session:', error);
-        res.status(500).json({ 
-            error: 'Failed to create checkout session',
-            details: error.message 
+        console.error('Payment session creation error:', error);
+        return res.status(500).json({
+            message: 'Failed to create payment session',
+            error: error.message
         });
     }
 });
 
-// Verify payment status and create booking
 router.get('/verify-payment/:sessionId', async (req, res) => {
     try {
-        const session = await stripe.checkout.sessions.retrieve(req.params.sessionId);
-        
+        const { sessionId } = req.params;
+        const session = await stripe.checkout.sessions.retrieve(sessionId);
+
         if (session.payment_status === 'paid') {
-            // Extract metadata from the session
-            const { selectedSeats, movieId, userId, date, totalAmount } = session.metadata || {};
-            
-            // Check if booking already exists for this session
-            const existingBooking = await Booking.findOne({ 'paymentInfo.sessionId': session.id });
-            if (existingBooking) {
-                return res.json({ 
-                    status: session.payment_status,
-                    booking: existingBooking,
-                    message: 'Booking already exists'
-                });
-            }
+            // Update booking status
+            const booking = await Booking.findOne({ 'paymentInfo.sessionId': sessionId });
+            if (booking) {
+                // Update payment info
+                booking.paymentInfo.status = 'completed';
+                await booking.save();
 
-            // Create a new booking
-            const booking = new Booking({
-                movie: movieId,
-                user: userId,
-                seatNumbers: JSON.parse(selectedSeats).map(Number),
-                date: new Date(date),
-                paymentInfo: {
-                    sessionId: session.id,
-                    status: 'completed',
-                    amount: parseFloat(totalAmount)
+                // Update movie bookings
+                const movie = await Movie.findById(booking.movie);
+                if (movie) {
+                    movie.bookings.push(booking);
+                    await movie.save();
                 }
-            });
 
-            const existingMovie = await Movie.findById(movieId);
-            if (!existingMovie) {
-                return res.status(404).json({ message: "Movie not found" });
-            }
-
-            const dbSession = await mongoose.startSession();
-            dbSession.startTransaction();
-
-            try {
-                await booking.save({ session: dbSession });
-                existingMovie.bookings.push(booking);
-                await existingMovie.save({ session: dbSession });
-                await dbSession.commitTransaction();
-
-                res.json({ 
-                    status: session.payment_status,
-                    booking: booking,
-                    message: 'Booking created successfully'
+                return res.status(200).json({
+                    message: 'Payment verified successfully',
+                    booking,
+                    status: 'success'
                 });
-            } catch (error) {
-                await dbSession.abortTransaction();
-                throw error;
-            } finally {
-                dbSession.endSession();
+            } else {
+                return res.status(404).json({
+                    message: 'Booking not found',
+                    status: 'error'
+                });
             }
-        } else {
-            res.json({ status: session.payment_status });
         }
+
+        return res.status(400).json({
+            message: 'Payment not completed',
+            status: 'error'
+        });
     } catch (error) {
-        console.error('Error verifying payment:', error);
-        res.status(500).json({ error: 'Failed to verify payment' });
+        console.error('Payment verification error:', error);
+        return res.status(500).json({
+            message: 'Failed to verify payment',
+            error: error.message,
+            status: 'error'
+        });
     }
 });
 

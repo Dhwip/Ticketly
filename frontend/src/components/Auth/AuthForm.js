@@ -10,6 +10,7 @@ import {
 import React, { useState } from "react";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import { Link } from "react-router-dom";
+import ForgetPassword from "./ForgetPassword.js";
 
 const labelStyle = { mt: 1, mb: 1, fontSize: "14px", fontWeight: "bold", color: "#FFD700" };
 
@@ -20,6 +21,7 @@ const AuthForm = ({ onSubmit, isAdmin }) => {
     password: "",
   });
   const [isSignup, setIsSignup] = useState(false);
+  const [showForgetPassword, setShowForgetPassword] = useState(false);
 
   const handleChange = (e) => {
     setInputs((prevState) => ({
@@ -32,6 +34,10 @@ const AuthForm = ({ onSubmit, isAdmin }) => {
     e.preventDefault();
     onSubmit({ inputs, signup: isAdmin ? false : isSignup });
   };
+
+  if (showForgetPassword) {
+    return <ForgetPassword onClose={() => setShowForgetPassword(false)} />;
+  }
 
   return (
     <Dialog 
@@ -116,10 +122,26 @@ const AuthForm = ({ onSubmit, isAdmin }) => {
             sx={{ mb: 2, bgcolor: "#3a3d56", borderRadius: "5px", input: { color: "#fff" } }}
           />
 
+          {/* Forget Password Link (Only for Login) */}
+          {!isAdmin && !isSignup && (
+            <Button
+              onClick={() => setShowForgetPassword(true)}
+              sx={{
+                alignSelf: "flex-end",
+                color: "#FFD700",
+                fontSize: "12px",
+                textDecoration: "underline",
+                "&:hover": { color: "#FFA500" },
+                mb: 2,
+              }}
+            >
+              Forgot Password?
+            </Button>
+          )}
+
           {/* Submit Button */}
           <Button
             sx={{
-              mt: 2,
               borderRadius: 8,
               bgcolor: "#FFD700",
               color: "#000",

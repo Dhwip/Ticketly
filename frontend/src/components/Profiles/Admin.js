@@ -1,77 +1,87 @@
-import { Box } from "@mui/system";
 import React, { useEffect, useState } from "react";
-import PersonRoundedIcon from "@mui/icons-material/PersonRounded";
-import { List, ListItem, ListItemText, Typography } from "@mui/material";
-import { getAdmidData } from "../../helpers/api-helpers";
+import { getAdminData } from "../../api-helpers/api-helpers";
+import {
+  Box,
+  Card,
+  CardContent,
+  Typography,
+  Grid,
+  Button,
+} from "@mui/material";
+import { useNavigate } from "react-router-dom";
+
 const Admin = () => {
-  const [admin, setAdmim] = useState();
-  const onResReceived = (res) => {
-    setAdmim(res.admin);
-  };
+  const [admin, setAdmin] = useState(null);
+  const navigate = useNavigate();
+
   useEffect(() => {
-    getAdmidData()
-      .then(onResReceived)
+    getAdminData()
+      .then((data) => setAdmin(data))
       .catch((err) => console.log(err));
   }, []);
-  console.log(admin);
-  return (
-    <Box width="100%" display={"flex"}>
-      <Box
-        display="flex"
-        flexDirection={"column"}
-        justifyContent="center"
-        alignItems={"center"}
-        width="30%"
-      >
-        <PersonRoundedIcon sx={{ fontSize: "20rem" }} />
-        <Typography
-          padding={1}
-          width="200px"
-          textAlign={"center"}
-          border="1px solid #ccc"
-          borderRadius={10}
-        >
-          Email: {admin && admin.email}
-        </Typography>
-      </Box>
-      <Box width="70%" display="flex" flexDirection={"column"}>
-        <Typography
-          variant="h3"
-          fontFamily={"verdana"}
-          textAlign="center"
-          padding={2}
-        >
-          Added Movies
-        </Typography>
 
-        <Box margin="auto" display="flex" flexDirection={"column"} width="80%">
-          <List>
-            {admin &&
-              admin.addedMovies.map((movie, index) => (
-                <ListItem
-                  sx={{
-                    bgcolor: "#00d386",
-                    color: "white",
-                    textAlign: "center",
-                    margin: 1,
-                  }}
-                  key={index}
-                >
-                  <ListItemText
-                    sx={{ margin: 1, width: "100px", textAlign: "left" }}
-                  >
-                    Movie: {movie.title}
-                  </ListItemText>
-                  <ListItemText
-                    sx={{ margin: 1, width: "100px", textAlign: "left" }}
-                  >
-                    Releasing: {new Date(movie.releaseDate).toDateString()}
-                  </ListItemText>
-                </ListItem>
-              ))}
-          </List>
-        </Box>
+  if (!admin) {
+    return (
+      <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
+        <Typography>Loading...</Typography>
       </Box>
+    );
+  }
+
+  return (
+    <Box sx={{ padding: 3 }}>
+      <Typography variant="h4" gutterBottom sx={{ color: "#FFD700" }}>
+        Admin Profile
+      </Typography>
+      <Grid container spacing={3}>
+        <Grid item xs={12} md={6}>
+          <Card sx={{ bgcolor: "#2b2d42", color: "#fff" }}>
+            <CardContent>
+              <Typography variant="h6" gutterBottom sx={{ color: "#FFD700" }}>
+                Admin Information
+              </Typography>
+              <Typography variant="body1">
+                <strong>Email:</strong> {admin.email}
+              </Typography>
+              <Typography variant="body1">
+                <strong>ID:</strong> {admin._id}
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} md={6}>
+          <Card sx={{ bgcolor: "#2b2d42", color: "#fff" }}>
+            <CardContent>
+              <Typography variant="h6" gutterBottom sx={{ color: "#FFD700" }}>
+                Actions
+              </Typography>
+              <Button
+                variant="contained"
+                onClick={() => navigate("/add")}
+                sx={{
+                  bgcolor: "#FFD700",
+                  color: "#000",
+                  "&:hover": { bgcolor: "#FFA500" },
+                  mr: 2,
+                }}
+              >
+                Add Movie
+              </Button>
+              <Button
+                variant="outlined"
+                onClick={() => navigate("/")}
+                sx={{
+                  borderColor: "#FFD700",
+                  color: "#FFD700",
+                  "&:hover": { borderColor: "#FFA500", color: "#FFA500" },
+                }}
+              >
+                Back to Home
+              </Button>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
     </Box>
   );
 };

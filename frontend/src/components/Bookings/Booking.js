@@ -1,334 +1,540 @@
-import { Button, FormLabel, TextField, Typography, Paper, Grid } from "@mui/material";
+import { Button, FormLabel, TextField, Typography, Paper, Grid, Select, MenuItem, Snackbar, Alert } from "@mui/material";
 import { Box } from "@mui/system";
-import React, { Fragment, useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { getMovieDetails, createPaymentSession, getBookedSeats } from "../../api-helpers/api-helpers";
+import React, { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
+import { getMovieDetails, createPaymentSession } from "../../api-helpers/api-helpers";
+import axios from "axios";
 
 const Booking = () => {
-  const [movie, setMovie] = useState();
-  const [inputs, setInputs] = useState({ date: "" });
+  const [movie, setMovie] = useState(null);
+  const [selectedDate, setSelectedDate] = useState("");
+  const [selectedTheater, setSelectedTheater] = useState("");
+  const [selectedTimeSlot, setSelectedTimeSlot] = useState("");
   const [selectedSeats, setSelectedSeats] = useState([]);
-  const [bookedSeats, setBookedSeats] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const id = useParams().id;
-  const navigate = useNavigate();
+  const [bookedSeats, setBookedSeats] = useState({});
+  const [totalAmount, setTotalAmount] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
-  // Check for admin at component load
+  const { id } = useParams();
+
   useEffect(() => {
-    const isAdmin = localStorage.getItem("isAdmin") === "true";
-    if (isAdmin) {
-      const shouldRedirect = window.confirm(
-        "Admins cannot book tickets. You need to log out and log in with a user account. Would you like to go to the logout page?"
-      );
-      if (shouldRedirect) {
-        navigate("/logout");
-      } else {
-        navigate("/");
+    const fetchMovieDetails = async () => {
+      try {
+        const response = await getMovieDetails(id);
+        setMovie(response.movie);
+        setLoading(false);
+      } catch (err) {
+        console.error("Error fetching movie details:", err);
+        setError("Failed to load movie details");
+        setLoading(false);
       }
-    }
-  }, [navigate]);
+    };
 
-  // Calculate min and max dates
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const maxDate = new Date(today);
-  maxDate.setDate(today.getDate() + 15);
-
-  // Format dates for input field
-  const formatDateForInput = (date) => {
-    return date.toISOString().split('T')[0];
-  };
-
-  useEffect(() => {
-    getMovieDetails(id)
-      .then((res) => {
-        setMovie(res.movie);
-      })
-      .catch((err) => console.log(err));
+    fetchMovieDetails();
   }, [id]);
 
-  // Fetch booked seats when date changes
   useEffect(() => {
     const fetchBookedSeats = async () => {
-      if (inputs.date && movie?._id) {
-        setLoading(true);
-        try {
-          const seats = await getBookedSeats(movie._id, inputs.date);
-          setBookedSeats(seats);
-        } catch (err) {
-          console.error("Failed to fetch booked seats:", err);
-          alert("Failed to fetch booked seats. Please try again.");
-        } finally {
-          setLoading(false);
+      try {
+        if (!selectedTheater || !selectedTimeSlot || !movie?._id || !selectedDate) {
+          console.log('Missing required data for fetching booked seats');
+          return;
+        }
+
+        const params = {
+          movieId: movie._id,
+          theaterId: selectedTheater.name,
+          timeSlot: selectedTimeSlot.time,
+          date: selectedDate
+        };
+
+        console.log('Fetching booked seats with params:', params);
+
+        const response = await axios.get('/booking/booked-seats', { params });
+
+        console.log('Booked seats response:', response.data);
+
+        if (!response.data || !Array.isArray(response.data.bookedSeats)) {
+          console.warn('Invalid response format:', response.data);
+          return;
+        }
+
+        // Create a map of booked seats for each theater-time combination
+        const bookedSeatsMap = {};
+        response.data.bookedSeats.forEach(booking => {
+          if (!booking.theater?.name || !booking.timeSlot?.time || !Array.isArray(booking.seatNumbers)) {
+            console.warn('Invalid booking data:', booking);
+            return;
+          }
+
+          const key = `${booking.theater.name}-${booking.timeSlot.time}`;
+          if (!bookedSeatsMap[key]) {
+            bookedSeatsMap[key] = new Set();
+          }
+          booking.seatNumbers.forEach(seat => {
+            bookedSeatsMap[key].add(seat);
+          });
+        });
+
+        setBookedSeats(bookedSeatsMap);
+      } catch (error) {
+        console.error('Error fetching booked seats:', error);
+        const errorMessage = error.response?.data?.message || 'Failed to fetch booked seats';
+        setSnackbar({
+          open: true,
+          message: errorMessage,
+          severity: 'error'
+        });
+        
+        // Log detailed error information in development
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Error details:', {
+            message: error.message,
+            response: error.response?.data,
+            status: error.response?.status,
+            params: {
+              movieId: movie?._id,
+              theaterId: selectedTheater?.name,
+              timeSlot: selectedTimeSlot?.time,
+              date: selectedDate
+            }
+          });
         }
       }
     };
 
     fetchBookedSeats();
-  }, [inputs.date, movie?._id]);
+  }, [selectedTheater, selectedTimeSlot, selectedDate, movie]);
+
+  useEffect(() => {
+    if (selectedSeats.length > 0 && selectedTimeSlot) {
+      // Get the price from the selected time slot
+      const price = selectedTimeSlot.price || 0;
+      const total = selectedSeats.length * price;
+      console.log('Calculating total:', {
+        seats: selectedSeats.length,
+        price: price,
+        total: total
+      });
+      setTotalAmount(total);
+    } else {
+      setTotalAmount(0);
+    }
+  }, [selectedSeats, selectedTimeSlot]);
 
   const handleDateChange = (e) => {
-    const selectedDate = new Date(e.target.value);
-    selectedDate.setHours(0, 0, 0, 0);
-
-    // Validate date range
-    if (selectedDate < today) {
-      alert("Please select today's date or a future date.");
-      return;
-    }
-    if (selectedDate > maxDate) {
-      alert("Bookings are only available up to 15 days in advance.");
-      return;
-    }
-
-    setInputs((prevState) => ({
-      ...prevState,
-      [e.target.name]: e.target.value,
-    }));
-    // Clear selected seats when date changes
+    setSelectedDate(e.target.value);
+    setSelectedTheater("");
+    setSelectedTimeSlot("");
     setSelectedSeats([]);
   };
 
-  const handleSeatSelection = (seatNumber) => {
-    if (bookedSeats.includes(seatNumber)) {
-      alert("This seat is already booked for the selected date!");
+  const handleTheaterChange = (e) => {
+    const selectedTheaterName = e.target.value;
+    const theater = movie.theaters.find(t => t.name === selectedTheaterName);
+    if (theater) {
+      setSelectedTheater(theater);
+      setSelectedTimeSlot("");
+      setSelectedSeats([]);
+    } else {
+      setSnackbar({
+        open: true,
+        message: 'Invalid theater selection',
+        severity: 'error'
+      });
+    }
+  };
+
+  const handleTimeSlotChange = (e) => {
+    const selectedTime = e.target.value;
+    const timeSlot = selectedTheater.timeSlots.find(s => s.time === selectedTime);
+    if (timeSlot) {
+      console.log('Selected time slot:', timeSlot); // Debug log
+      setSelectedTimeSlot(timeSlot);
+      setSelectedSeats([]);
+    } else {
+      setSnackbar({
+        open: true,
+        message: 'Invalid time slot selection',
+        severity: 'error'
+      });
+    }
+  };
+
+  const isSeatBooked = (seatNumber) => {
+    if (!selectedTheater || !selectedTimeSlot) return false;
+    const key = `${selectedTheater.name}-${selectedTimeSlot.time}`;
+    return bookedSeats[key]?.has(seatNumber) || false;
+  };
+
+  const handleSeatClick = (seatNumber) => {
+    if (!selectedTheater || !selectedTimeSlot) {
+      setSnackbar({
+        open: true,
+        message: 'Please select theater and time slot first',
+        severity: 'warning'
+      });
       return;
     }
 
-    setSelectedSeats((prevSeats) =>
-      prevSeats.includes(seatNumber)
-        ? prevSeats.filter((seat) => seat !== seatNumber)
-        : [...prevSeats, seatNumber]
-    );
+    if (isSeatBooked(seatNumber)) {
+      setSnackbar({
+        open: true,
+        message: 'This seat is already booked',
+        severity: 'warning'
+      });
+      return;
+    }
+
+    setSelectedSeats(prev => {
+      const newSeats = prev.includes(seatNumber)
+        ? prev.filter(seat => seat !== seatNumber)
+        : [...prev, seatNumber];
+      return newSeats;
+    });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    // Check if user is logged in
-    const userInfo = localStorage.getItem("userId");
-    const isAdmin = localStorage.getItem("isAdmin") === "true";
-
-    if (!userInfo) {
-      alert("Please log in to book tickets");
-      navigate("/auth");
-      return;
-    }
-
-    if (isAdmin) {
-      const shouldRedirect = window.confirm(
-        "Admins cannot book tickets. Would you like to log out and switch to a user account?"
-      );
-      if (shouldRedirect) {
-        navigate("/logout");
-      }
-      return;
-    }
+    setIsSubmitting(true);
+    setError(null);
 
     try {
-      const selectedDate = new Date(inputs.date);
-      selectedDate.setHours(0, 0, 0, 0);
-      
-      if (!inputs.date) {
-        alert("Please select a booking date.");
-        return;
-      }
-      
-      // Validate date range again
-      if (selectedDate < today) {
-        alert("Please select today's date or a future date.");
-        return;
-      }
-      if (selectedDate > maxDate) {
-        alert("Bookings are only available up to 15 days in advance.");
-        return;
-      }
-      
-      if (selectedSeats.length === 0) {
-        alert("Please select at least one seat.");
+      if (!selectedDate || !selectedTheater || !selectedTimeSlot || selectedSeats.length === 0) {
+        setError("Please select all required fields");
         return;
       }
 
-      // Check if any selected seat is already booked
-      const isAnySeatBooked = selectedSeats.some(seat => bookedSeats.includes(seat));
-      if (isAnySeatBooked) {
-        alert("One or more selected seats are already booked. Please choose different seats.");
-        return;
-      }
+      // Calculate total amount
+      const totalAmount = selectedSeats.length * selectedTimeSlot.price;
 
-      if (!movie || !movie._id || !movie.title) {
-        alert("Invalid movie details. Please try again.");
-        return;
-      }
+      console.log("Creating payment session with data:", {
+        seats: selectedSeats,
+        movieTitle: movie.title,
+        movieId: movie._id,
+        date: selectedDate,
+        theater: {
+          name: selectedTheater.name,
+          location: selectedTheater.location
+        },
+        timeSlot: {
+          time: selectedTimeSlot.time,
+          price: selectedTimeSlot.price
+        },
+        totalAmount
+      });
 
-      // Create Stripe checkout session
       const response = await createPaymentSession(
         selectedSeats,
         movie.title,
         movie._id,
-        inputs.date
+        selectedDate,
+        {
+          name: selectedTheater.name,
+          location: selectedTheater.location
+        },
+        {
+          time: selectedTimeSlot.time,
+          price: selectedTimeSlot.price
+        }
       );
 
-      // Show only test card information
-      // alert(
-      //   `Please use the following test card for payment:\n\n` +
-      //   `Card Number: ${response.testCard.number}\n` +
-      //   `Expiry: ${response.testCard.expiry}\n` +
-      //   `CVC: ${response.testCard.cvc}\n` +
-      //   `ZIP: ${response.testCard.zip}`
-      // );
-
-      // Redirect to Stripe checkout
-      if (response.url) {
-        window.location.href = response.url;
-      } else {
-        throw new Error('No checkout URL received');
+      if (!response || !response.url) {
+        throw new Error("Invalid response from payment server");
       }
-    } catch (err) {
-      console.error("Payment session creation failed:", err);
-      alert(err.message || "Failed to create payment session. Please try again.");
+
+      if (response.sessionId) {
+        localStorage.setItem('stripeSessionId', response.sessionId);
+      }
+      window.location.href = response.url;
+    } catch (error) {
+      console.error("Error creating payment session:", error);
+      setError(error.message || "Failed to create payment session");
+      setSnackbar({
+        open: true,
+        message: error.message || "Failed to create payment session",
+        severity: 'error'
+      });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  return (
-    <Box
-      width="100%"
-      minHeight="100vh"
-      sx={{
-        background: "linear-gradient(135deg, #1c1c1c, #2b2d42)",
-        color: "#fff",
-        padding: 4,
-      }}
-    >
-      {movie && (
-        <Fragment>
-          <Typography variant="h4" textAlign={"center"} sx={{ color: "#FFD700" }}>
-            Book Tickets for {movie.title}
+  if (loading) {
+    return (
+      <Box sx={{ 
+        minHeight: "100vh", 
+        bgcolor: "#1a1a1a", 
+        color: "#fff", 
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center"
+      }}>
+        <Typography variant="h5" sx={{ color: "#FFD700" }}>
+          Loading...
+        </Typography>
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Box sx={{ 
+        minHeight: "100vh", 
+        bgcolor: "#1a1a1a", 
+        color: "#fff", 
+        py: 8,
+        px: { xs: 2, sm: 4, md: 8 }
+      }}>
+        <Paper elevation={3} sx={{ p: 3, bgcolor: "#2b2d42" }}>
+          <Typography variant="h5" sx={{ color: "#FFD700", mb: 2 }}>
+            Error
           </Typography>
-          <Box sx={{ 
-            display: "flex", 
-            justifyContent: "center", 
-            alignItems: "center",
-            gap: 1,
-            mt: 2 
-          }}>
-           
-          </Box>
-          <Grid container spacing={4}>
-            <Grid item xs={12} md={5}>
-              <Paper elevation={5} sx={{ padding: 2, background: "#000", color: "#fff", borderRadius: 3 }}>
-                <img width="100%" height="auto" src={movie.posterUrl} alt={movie.title} style={{ borderRadius: 8 }} />
-                <Typography marginTop={2}>{movie.description}</Typography>
-                <Typography fontWeight="bold" marginTop={1} sx={{ color: "#FFD700" }}>
-                  Starring: {movie.actors.join(", ")}
-                </Typography>
-                <Typography fontWeight="bold" marginTop={1} sx={{ color: "#FFD700" }}>
-                  Release Date: {new Date(movie.releaseDate).toDateString()}
-                </Typography>
-                <Box sx={{ mt: 2, p: 2, background: 'rgba(255, 215, 0, 0.1)', borderRadius: 2, border: '1px solid #FFD700' }}>
-                  <Typography fontWeight="bold" sx={{ color: "#FFD700" }}>
-                    Show Time: 21:00 (9:00 PM)
-                  </Typography>
-                  <Typography fontWeight="bold" sx={{ color: "#FFD700", mt: 1 }}>
-                    Location: Vanilla Cinemas, Ahmedabad
-                  </Typography>
-                  <Typography variant="caption" sx={{ color: "#fff", mt: 1, display: 'block' }}>
-                    Please arrive 15 minutes before show time
-                  </Typography>
-                </Box>
-              </Paper>
-            </Grid>
-            <Grid item xs={12} md={7}>
-              <Paper elevation={5} sx={{ padding: 3, background: "#2b2d42", borderRadius: 3 }}>
-                <form onSubmit={handleSubmit}>
-                  <FormLabel sx={{ color: "#FFD700" }}>Booking Date (Available for next 15 days only)</FormLabel>
+          <Typography sx={{ color: "#fff", mb: 2 }}>
+            {error}
+          </Typography>
+          <Button
+            variant="contained"
+            onClick={() => setError(null)}
+            sx={{
+              bgcolor: "#FFD700",
+              color: "#000",
+              "&:hover": { bgcolor: "#FFA500" },
+            }}
+          >
+            Try Again
+          </Button>
+        </Paper>
+      </Box>
+    );
+  }
+
+  if (!movie) {
+    return (
+      <Box sx={{ 
+        minHeight: "100vh", 
+        bgcolor: "#1a1a1a", 
+        color: "#fff", 
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center"
+      }}>
+        <Typography variant="h5" sx={{ color: "#FFD700" }}>
+          Movie not found
+        </Typography>
+      </Box>
+    );
+  }
+
+  return (
+    <Box sx={{ 
+      minHeight: "100vh", 
+      bgcolor: "#1a1a1a", 
+      color: "#fff", 
+      py: 8,
+      px: { xs: 2, sm: 4, md: 8 }
+    }}>
+      <Paper elevation={3} sx={{ p: 3, bgcolor: "#2b2d42" }}>
+        <Typography variant="h4" sx={{ color: "#FFD700", mb: 4 }}>
+          Book Tickets for {movie.title}
+        </Typography>
+
+        <Grid container spacing={3}>
+          {/* Movie Details */}
+          <Grid item xs={12} md={4}>
+            <img
+              src={movie.posterUrl}
+              alt={movie.title}
+              style={{ width: "100%", borderRadius: "8px" }}
+            />
+            <Typography variant="h6" sx={{ mt: 2, color: "#FFD700" }}>
+              {movie.title}
+            </Typography>
+            <Typography sx={{ color: "#fff" }}>
+              {movie.description}
+            </Typography>
+            <Typography sx={{ color: "#FFD700", mt: 1 }}>
+              Language: {movie.language}
+            </Typography>
+            <Typography sx={{ color: "#FFD700" }}>
+              Release Date: {new Date(movie.releaseDate).toLocaleDateString()}
+            </Typography>
+          </Grid>
+
+          {/* Booking Form */}
+          <Grid item xs={12} md={8}>
+            <form onSubmit={handleSubmit}>
+              <Grid container spacing={3}>
+                <Grid item xs={12} md={6}>
+                  <FormLabel sx={{ color: "#FFD700" }}>Select Date</FormLabel>
                   <TextField
-                    name="date"
-                    type="date"
                     fullWidth
-                    margin="normal"
-                    variant="outlined"
-                    value={inputs.date}
+                    type="date"
+                    value={selectedDate}
                     onChange={handleDateChange}
+                    required
+                    InputLabelProps={{ shrink: true }}
                     inputProps={{
-                      min: formatDateForInput(today),
-                      max: formatDateForInput(maxDate)
+                      min: new Date().toISOString().split('T')[0],
+                      max: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
                     }}
-                    sx={{ background: "#fff", borderRadius: 1 }}
+                    sx={{
+                      input: { color: "#fff" },
+                      "& .MuiOutlinedInput-root": {
+                        "& fieldset": { borderColor: "#FFD700" },
+                        "&:hover fieldset": { borderColor: "#FFA500" },
+                        "&.Mui-focused fieldset": { borderColor: "#FFD700" },
+                      },
+                    }}
                   />
-                  <Typography variant="caption" sx={{ color: "#FFD700", display: 'block', mt: 1 }}>
-                    Booking window: {formatDateForInput(today)} to {formatDateForInput(maxDate)}
+                </Grid>
+
+                <Grid item xs={12} md={6}>
+                  <FormLabel sx={{ color: "#FFD700" }}>Select Theater</FormLabel>
+                  <Select
+                    fullWidth
+                    value={selectedTheater?.name || ""}
+                    onChange={handleTheaterChange}
+                    required
+                    disabled={!selectedDate}
+                    sx={{
+                      color: "#fff",
+                      "& .MuiOutlinedInput-notchedOutline": { borderColor: "#FFD700" },
+                      "&:hover .MuiOutlinedInput-notchedOutline": { borderColor: "#FFA500" },
+                      "&.Mui-focused .MuiOutlinedInput-notchedOutline": { borderColor: "#FFD700" },
+                    }}
+                  >
+                    {movie.theaters?.map((theater) => (
+                      <MenuItem key={theater._id} value={theater.name}>
+                        {theater.name} - {theater.location}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </Grid>
+
+                <Grid item xs={12} md={6}>
+                  <FormLabel sx={{ color: "#FFD700" }}>Select Time Slot</FormLabel>
+                  <Select
+                    fullWidth
+                    value={selectedTimeSlot?.time || ""}
+                    onChange={handleTimeSlotChange}
+                    required
+                    disabled={!selectedTheater}
+                    sx={{
+                      color: "#fff",
+                      "& .MuiOutlinedInput-notchedOutline": { borderColor: "#FFD700" },
+                      "&:hover .MuiOutlinedInput-notchedOutline": { borderColor: "#FFA500" },
+                      "&.Mui-focused .MuiOutlinedInput-notchedOutline": { borderColor: "#FFD700" },
+                    }}
+                  >
+                    {selectedTheater?.timeSlots?.map((slot) => (
+                      <MenuItem key={slot.time} value={slot.time}>
+                        {slot.time} - ₹{slot.price}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </Grid>
+
+                {/* Seats Selection */}
+                <Grid item xs={12}>
+                  <Typography variant="h6" sx={{ color: "#FFD700", mb: 2 }}>
+                    Select Seats
                   </Typography>
-                  <Typography fontWeight="bold" marginTop={2} textAlign="center" sx={{ color: "#FFD700" }}>
-                    Select Your Seats
+                  <Grid container spacing={2}>
+                    {Array.from({ length: 50 }, (_, i) => i + 1).map((seatNumber) => (
+                      <Grid item xs={2} sm={1.5} md={1} key={seatNumber}>
+                        <Box
+                          sx={{
+                            width: '100%',
+                            aspectRatio: '1',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: selectedTheater && selectedTimeSlot ? 'pointer' : 'not-allowed',
+                            bgcolor: isSeatBooked(seatNumber)
+                              ? '#ff4444'
+                              : selectedSeats.includes(seatNumber)
+                              ? '#4CAF50'
+                              : '#2b2d42',
+                            color: '#fff',
+                            borderRadius: 1,
+                            border: '1px solid #FFD700',
+                            opacity: selectedTheater && selectedTimeSlot ? 1 : 0.5,
+                            '&:hover': {
+                              bgcolor: isSeatBooked(seatNumber)
+                                ? '#ff4444'
+                                : selectedSeats.includes(seatNumber)
+                                ? '#45a049'
+                                : '#3a3d5c',
+                            },
+                            fontSize: { xs: '0.8rem', sm: '0.9rem', md: '1rem' }
+                          }}
+                          onClick={() => handleSeatClick(seatNumber)}
+                        >
+                          {seatNumber}
+                        </Box>
+                      </Grid>
+                    ))}
+                  </Grid>
+                  <Box sx={{ mt: 2, display: 'flex', gap: 2, justifyContent: 'center' }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Box sx={{ width: 20, height: 20, bgcolor: '#2b2d42', border: '1px solid #FFD700', borderRadius: 1 }} />
+                      <Typography variant="caption" sx={{ color: '#fff' }}>Available</Typography>
+                    </Box>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Box sx={{ width: 20, height: 20, bgcolor: '#4CAF50', border: '1px solid #FFD700', borderRadius: 1 }} />
+                      <Typography variant="caption" sx={{ color: '#fff' }}>Selected</Typography>
+                    </Box>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Box sx={{ width: 20, height: 20, bgcolor: '#ff4444', border: '1px solid #FFD700', borderRadius: 1 }} />
+                      <Typography variant="caption" sx={{ color: '#fff' }}>Booked</Typography>
+                    </Box>
+                  </Box>
+                </Grid>
+
+                <Grid item xs={12}>
+                  <Typography variant="h6" sx={{ color: "#FFD700" }}>
+                    Total Amount: ₹{totalAmount}
                   </Typography>
-                  {loading ? (
-                    <Typography textAlign="center" sx={{ color: "#FFD700", mt: 2 }}>
-                      Loading available seats...
-                    </Typography>
-                  ) : (
-                    <Grid container spacing={1} justifyContent="center" marginTop={2}>
-                      {[...Array(25)].map((_, index) => {
-                        const seatNumber = index + 1;
-                        const isBooked = bookedSeats.includes(seatNumber);
-                        const isSelected = selectedSeats.includes(seatNumber);
-                        return (
-                          <Grid item key={seatNumber}>
-                            <Button
-                              variant="contained"
-                              disabled={isBooked}
-                              sx={{
-                                minWidth: 50,
-                                minHeight: 50,
-                                background: isBooked 
-                                  ? "gray" 
-                                  : isSelected 
-                                    ? "#FFD700" 
-                                    : "#FFA500",
-                                color: "#000",
-                                fontWeight: "bold",
-                                '&:hover': {
-                                  background: isBooked 
-                                    ? "gray" 
-                                    : "#FFD700",
-                                },
-                                '&.Mui-disabled': {
-                                  background: 'gray',
-                                  color: '#fff'
-                                }
-                              }}
-                              onClick={() => handleSeatSelection(seatNumber)}
-                            >
-                              {seatNumber}
-                            </Button>
-                          </Grid>
-                        );
-                      })}
-                    </Grid>
-                  )}
+                </Grid>
+
+                <Grid item xs={12}>
                   <Button
                     type="submit"
-                    fullWidth
-                    sx={{ 
-                      mt: 3, 
-                      background: "linear-gradient(135deg, #FFD700, #FFA500)", 
-                      color: "#000", 
-                      fontWeight: "bold", 
-                      borderRadius: "30px", 
-                      '&:hover': { 
-                        background: "#FFA500" 
-                      } 
-                    }}
                     variant="contained"
+                    disabled={selectedSeats.length === 0 || isSubmitting}
+                    sx={{
+                      bgcolor: "#FFD700",
+                      color: "#000",
+                      "&:hover": { bgcolor: "#FFA500" },
+                    }}
                   >
-                    Book Now
+                    {isSubmitting ? "Processing..." : "Proceed to Payment"}
                   </Button>
-                </form>
-              </Paper>
-            </Grid>
+                </Grid>
+              </Grid>
+            </form>
           </Grid>
-        </Fragment>
-      )}
+        </Grid>
+      </Paper>
+
+      <Snackbar 
+        open={snackbar.open} 
+        autoHideDuration={6000} 
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert 
+          onClose={() => setSnackbar({ ...snackbar, open: false })} 
+          severity={snackbar.severity}
+          sx={{ width: '100%' }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

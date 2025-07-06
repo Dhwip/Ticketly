@@ -10,31 +10,78 @@ import {
   Typography,
 } from "@mui/material";
 import MovieCreationIcon from "@mui/icons-material/MovieCreation";
-import { getAllMovies } from "../../helpers/api-helpers";
-import { Link, NavLink, useNavigate } from "react-router-dom";
+import { getAllMovies } from "../../api-helpers/api-helpers";
+import { Link, NavLink, useNavigate, useLocation } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import { userActions } from "../../store/user-slice";
-import { adminActions } from "../../store/admin-slice";
+import { userActions, adminActions } from "../../store";
 
 const Header = () => {
   const navigate = useNavigate();
-  const [value, setValue] = useState(false);
+  const location = useLocation();
   const [data, setData] = useState([]);
+  const [tabValue, setTabValue] = useState(0);
   const isUserLoggedIn = useSelector((state) => state.user.isLoggedIn);
   const isAdminLoggedIn = useSelector((state) => state.admin.isLoggedIn);
   const dispatch = useDispatch();
 
   useEffect(() => {
     getAllMovies()
-      .then((data) => setData(data))
-      .catch((err) => console.log(err));
+      .then((response) => {
+        // Handle the response structure: { movies: [...] }
+        if (response && response.movies && Array.isArray(response.movies)) {
+          setData(response.movies);
+        } else if (Array.isArray(response)) {
+          // Fallback: if response is directly an array
+          setData(response);
+        } else {
+          console.log("Invalid data structure received:", response);
+          setData([]);
+        }
+      })
+      .catch((err) => {
+        console.log("Error fetching movies:", err);
+        setData([]);
+      });
   }, []);
+
+  // Update tab value based on current location
+  useEffect(() => {
+    if (location.pathname === "/") {
+      setTabValue(0);
+    } else if (location.pathname === "/auth") {
+      setTabValue(1);
+    } else if (location.pathname === "/admin") {
+      setTabValue(2);
+    } else if (location.pathname === "/user") {
+      setTabValue(1);
+    } else if (location.pathname === "/user-admin") {
+      setTabValue(1);
+    } else if (location.pathname === "/add") {
+      setTabValue(2);
+    } else {
+      setTabValue(0);
+    }
+  }, [location.pathname]);
 
   const handleChange = (e, val) => {
     const movie = data.find((mov) => mov.title === val);
     if (movie && isUserLoggedIn) {
       navigate(`/booking/${movie._id}`);
     }
+  };
+
+  const handleUserLogout = () => {
+    dispatch(userActions.logout());
+    navigate("/", { replace: true });
+  };
+
+  const handleAdminLogout = () => {
+    // Clear all admin-related localStorage items
+    localStorage.removeItem("adminId");
+    localStorage.removeItem("adminToken");
+    localStorage.removeItem("token");
+    dispatch(adminActions.logout());
+    navigate("/", { replace: true });
   };
 
   return (
@@ -45,13 +92,20 @@ const Header = () => {
           <Link to="/" style={{ textDecoration: "none", color: "white" }}>
             <MovieCreationIcon fontSize="large" sx={{ color: "#FFD700" }} />
           </Link>
-          <Typography
-            variant="h6"
-            fontWeight="bold"
-            sx={{ color: "#FFD700", ml: 1 }}
-          >
-            MovieVerse
-          </Typography>
+          <Link to="/" style={{ textDecoration: "none" }}>
+            <Typography
+              variant="h6"
+              fontWeight="bold"
+              sx={{ 
+                color: "#FFD700", 
+                ml: 1,
+                cursor: "pointer",
+                "&:hover": { color: "#FFA500" }
+              }}
+            >
+              Ticketly
+            </Typography>
+          </Link>
         </Box>
 
         {/* Search Bar */}
@@ -69,7 +123,7 @@ const Header = () => {
             },
           }}
           freeSolo
-          options={data.map((option) => option.title)}
+          options={Array.isArray(data) ? data.map((option) => option.title) : []}
           renderInput={(params) => (
             <TextField
               {...params}
@@ -90,8 +144,8 @@ const Header = () => {
         {/* Navigation Tabs */}
         <Box>
           <Tabs
-            value={value}
-            onChange={(e, val) => setValue(val)}
+            value={tabValue}
+            onChange={(e, newValue) => setTabValue(newValue)}
             textColor="inherit"
             indicatorColor="secondary"
             TabIndicatorProps={{ sx: { height: 3, bgcolor: "#FFD700" } }}
@@ -99,21 +153,25 @@ const Header = () => {
             {!isAdminLoggedIn && !isUserLoggedIn && (
               <>
                 <Tab
+                  value={1}
                   to="/auth"
                   component={NavLink}
                   label="Auth"
                   sx={{
                     color: "#FFD700",
                     "&:hover": { color: "#FFA500" },
+                    "&.Mui-selected": { color: "#FFD700" },
                   }}
                 />
                 <Tab
+                  value={2}
                   to="/admin"
                   component={NavLink}
                   label="Admin"
                   sx={{
                     color: "#FFD700",
                     "&:hover": { color: "#FFA500" },
+                    "&.Mui-selected": { color: "#FFD700" },
                   }}
                 />
               </>
@@ -121,22 +179,25 @@ const Header = () => {
             {isUserLoggedIn && (
               <>
                 <Tab
+                  value={1}
                   to="/user"
                   component={NavLink}
                   label="User"
                   sx={{
                     color: "#FFD700",
                     "&:hover": { color: "#FFA500" },
+                    "&.Mui-selected": { color: "#FFD700" },
                   }}
                 />
                 <Tab
-                  onClick={() => dispatch(userActions.logout())}
-                  to="/"
-                  component={NavLink}
+                  value={2}
+                  onClick={handleUserLogout}
                   label="Logout"
                   sx={{
                     color: "#FFD700",
                     "&:hover": { color: "#FF4500" },
+                    "&.Mui-selected": { color: "#FFD700" },
+                    cursor: "pointer",
                   }}
                 />
               </>
@@ -144,31 +205,36 @@ const Header = () => {
             {isAdminLoggedIn && (
               <>
                 <Tab
-                  to="/profile"
+                  value={1}
+                  to="/user-admin"
                   component={NavLink}
                   label="Profile"
                   sx={{
                     color: "#FFD700",
                     "&:hover": { color: "#FFA500" },
+                    "&.Mui-selected": { color: "#FFD700" },
                   }}
                 />
                 <Tab
+                  value={2}
                   to="/add"
                   component={NavLink}
                   label="Add Movie"
                   sx={{
                     color: "#FFD700",
                     "&:hover": { color: "#FFA500" },
+                    "&.Mui-selected": { color: "#FFD700" },
                   }}
                 />
                 <Tab
-                  onClick={() => dispatch(adminActions.logout())}
-                  to="/"
-                  component={NavLink}
+                  value={3}
+                  onClick={handleAdminLogout}
                   label="Logout"
                   sx={{
                     color: "#FFD700",
                     "&:hover": { color: "#FF4500" },
+                    "&.Mui-selected": { color: "#FFD700" },
+                    cursor: "pointer",
                   }}
                 />
               </>
