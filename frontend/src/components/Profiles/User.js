@@ -175,7 +175,7 @@ const User = () => {
           <Button onClick={() => setOpenDialog(false)} color="primary">
             No
           </Button>
-          <Button onClick={confirmDelete} color="error" variant="contained">
+          <Button onClick={confirmDelete} color="error" autoFocus>
             Yes
           </Button>
         </DialogActions>

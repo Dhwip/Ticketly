@@ -5,14 +5,12 @@ axios.defaults.baseURL = "http://localhost:9000";
 axios.defaults.headers.post['Content-Type'] = 'application/json';
 
 export const getAllMovies = async () => {
-  const res = await axios.get("http://localhost:9000/movie").catch((err) => console.log(err));
-
-  if (res.status !== 200) {
-    return console.log("No Data");
+  try {
+    const res = await axios.get("http://localhost:9000/movie");
+    return res.data;
+  } catch (err) {
+    console.error("Error fetching movies:", err);
   }
-
-  const data = await res.data;
-  return data;
 };
 
 export const sendUserAuthRequest = async (data, signup) => {
@@ -73,12 +71,12 @@ export const sendAdminAuthRequest = async (data) => {
 };
 
 export const getMovieDetails = async (id) => {
-  const res = await axios.get(`/movie/${id}`).catch((err) => console.log(err));
-  if (res.status !== 200) {
-    return console.log("Unexpected Error");
+  try {
+    const res = await axios.get(`/movie/${id}`);
+    return res.data;
+  } catch (err) {
+    console.error("Error fetching movie details:", err);
   }
-  const resData = await res.data;
-  return resData;
 };
 
 export const newBooking = async (data) => {
@@ -101,16 +99,13 @@ export const newBooking = async (data) => {
 };
 
 export const getUserBooking = async () => {
-  const id = localStorage.getItem("userId");
-  const res = await axios
-    .get(`/user/bookings/${id}`)
-    .catch((err) => console.log(err));
-
-  if (res.status !== 200) {
-    return console.log("Unexpected Error");
+  try {
+    const id = localStorage.getItem("userId");
+    const res = await axios.get(`/user/bookings/${id}`);
+    return res.data;
+  } catch (err) {
+    console.error("Error fetching user bookings:", err);
   }
-  const resData = await res.data;
-  return resData;
 };
 
 export const deleteBooking = async (id) => {
@@ -134,13 +129,13 @@ export const deleteBooking = async (id) => {
 };
 
 export const getUserDetails = async () => {
-  const id = localStorage.getItem("userId");
-  const res = await axios.get(`/user/${id}`).catch((err) => console.log(err));
-  if (res.status !== 200) {
-    return console.log("Unexpected Error");
+  try {
+    const id = localStorage.getItem("userId");
+    const res = await axios.get(`/user/${id}`);
+    return res.data;
+  } catch (err) {
+    console.error("Error fetching user details:", err);
   }
-  const resData = await res.data;
-  return resData;
 };
 
 export const addMovie = async (inputs) => {
@@ -164,8 +159,7 @@ export const addMovie = async (inputs) => {
       },
       {
         headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
       }
     );
@@ -176,33 +170,19 @@ export const addMovie = async (inputs) => {
 
     return response.data;
   } catch (error) {
-    console.error("Error adding movie:", error);
-    
-    if (error.response?.status === 401) {
-      // Instead of removing tokens, just throw an error
-      throw new Error("Invalid or expired session. Please try logging in again.");
-    }
-    
-    if (error.response?.data?.message) {
-      throw new Error(error.response.data.message);
-    }
-    
-    throw new Error(error.message || "Failed to add movie. Please try again.");
+    console.error("Add movie error:", error);
+    throw error;
   }
 };
 
 export const getAdminById = async () => {
-  const adminId = localStorage.getItem("adminId");
-  const res = await axios
-    .get(`/admin/${adminId}`)
-    .catch((err) => console.log(err));
-
-  if (res.status !== 200) {
-    return console.log("Unexpected Error Occurred");
+  try {
+    const adminId = localStorage.getItem("adminId");
+    const res = await axios.get(`/admin/${adminId}`);
+    return res.data;
+  } catch (err) {
+    console.error("Error fetching admin details:", err);
   }
-
-  const resData = await res.data;
-  return resData;
 };
 
 export const getAdminData = async () => {

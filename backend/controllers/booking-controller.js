@@ -93,11 +93,13 @@ export const getBookingById = async (req, res, next) => {
   try {
     booking = await Booking.findById(id);
   } catch (err) {
-    return console.log(err);
+    return res.status(500).json({ message: "Error fetching booking", error: err.message });
   }
+
   if (!booking) {
-    return res.status(500).json({ message: "Unexpected Error" });
+    return res.status(404).json({ message: "Booking not found" });
   }
+
   return res.status(200).json({ booking });
 };
 
@@ -154,12 +156,11 @@ export const deleteBooking = async (req, res, next) => {
     session.endSession();
 
     return res.status(200).json({ 
-      message: "Booking canceled successfully. Your refund will be processed within 2-3 working days.",
+      message: "Booking cancelled successfully",
       isPastBooking: false
     });
   } catch (err) {
-    console.log(err);
-    return res.status(500).json({ message: "Unable to delete booking" });
+    return res.status(500).json({ message: "Error cancelling booking", error: err.message });
   }
 };
 
