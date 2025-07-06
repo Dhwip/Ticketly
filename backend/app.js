@@ -58,14 +58,27 @@ app.use((req, res) => {
   });
 });
 
-mongoose
-  .connect(
-    `mongodb+srv://Dhwip:${process.env.pass}@cluster0.qrxo2.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`
-  )
-  .then(() => {
-    console.log("Connected to Database");
-    app.listen(9000, () =>
-      console.log("Server is running on port 9000")
+// Connect to MongoDB and start server
+const startServer = async () => {
+  try {
+    await mongoose.connect(
+      `mongodb+srv://Dhwip:${process.env.pass}@cluster0.qrxo2.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`
     );
-  })
-  .catch((e) => console.log("Connection error:", e));
+    console.log("Connected to Database");
+    
+    const port = process.env.PORT || 9000;
+    app.listen(port, () =>
+      console.log(`Server is running on port ${port}`)
+    );
+  } catch (e) {
+    console.log("Connection error:", e);
+  }
+};
+
+// Start server if this file is run directly
+if (process.env.NODE_ENV !== 'production') {
+  startServer();
+}
+
+// Export for Vercel
+export default app;

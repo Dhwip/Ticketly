@@ -1,12 +1,13 @@
 import axios from "axios";
+import { API_BASE_URL } from "../config/config.js";
 
 // Configure axios defaults
-axios.defaults.baseURL = "http://localhost:9000";
+axios.defaults.baseURL = API_BASE_URL;
 axios.defaults.headers.post['Content-Type'] = 'application/json';
 
 export const getAllMovies = async () => {
   try {
-    const res = await axios.get("http://localhost:9000/movie");
+    const res = await axios.get(`${API_BASE_URL}/movie`);
     return res.data;
   } catch (err) {
     console.error("Error fetching movies:", err);
@@ -15,7 +16,7 @@ export const getAllMovies = async () => {
 
 export const sendUserAuthRequest = async (data, signup) => {
   try {
-    const res = await axios.post(`/user/${signup ? "signup" : "login"}`, {
+    const res = await axios.post(`${API_BASE_URL}/user/${signup ? "signup" : "login"}`, {
       name: signup ? data.name : "",
       email: data.email,
       password: data.password,
@@ -45,7 +46,7 @@ export const sendUserAuthRequest = async (data, signup) => {
 
 export const sendAdminAuthRequest = async (data) => {
   try {
-    const res = await axios.post("/admin/login", {
+    const res = await axios.post(`${API_BASE_URL}/admin/login`, {
       email: data.email,
       password: data.password,
     });
@@ -72,7 +73,7 @@ export const sendAdminAuthRequest = async (data) => {
 
 export const getMovieDetails = async (id) => {
   try {
-    const res = await axios.get(`/movie/${id}`);
+    const res = await axios.get(`${API_BASE_URL}/movie/${id}`);
     return res.data;
   } catch (err) {
     console.error("Error fetching movie details:", err);
@@ -81,7 +82,7 @@ export const getMovieDetails = async (id) => {
 
 export const newBooking = async (data) => {
   try {
-    const res = await axios.post("/booking", {
+    const res = await axios.post(`${API_BASE_URL}/booking`, {
       movie: data.movie,
       seatNumbers: data.seatNumbers,
       date: data.date,
@@ -101,7 +102,7 @@ export const newBooking = async (data) => {
 export const getUserBooking = async () => {
   try {
     const id = localStorage.getItem("userId");
-    const res = await axios.get(`/user/bookings/${id}`);
+    const res = await axios.get(`${API_BASE_URL}/user/bookings/${id}`);
     return res.data;
   } catch (err) {
     console.error("Error fetching user bookings:", err);
@@ -110,7 +111,7 @@ export const getUserBooking = async () => {
 
 export const deleteBooking = async (id) => {
   try {
-    const res = await axios.delete(`/booking/${id}`);
+    const res = await axios.delete(`${API_BASE_URL}/booking/${id}`);
     
     if (res.status !== 200) {
       throw new Error("Failed to delete booking");
@@ -131,7 +132,7 @@ export const deleteBooking = async (id) => {
 export const getUserDetails = async () => {
   try {
     const id = localStorage.getItem("userId");
-    const res = await axios.get(`/user/${id}`);
+    const res = await axios.get(`${API_BASE_URL}/user/${id}`);
     return res.data;
   } catch (err) {
     console.error("Error fetching user details:", err);
@@ -152,7 +153,7 @@ export const addMovie = async (inputs) => {
     console.log("Admin ID:", adminId);
 
     const response = await axios.post(
-      "/movie",
+      `${API_BASE_URL}/movie`,
       {
         ...inputs,
         admin: adminId,
