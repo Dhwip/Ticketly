@@ -6,9 +6,10 @@ import { BrowserRouter } from "react-router-dom";
 import axios from "axios";
 import { Provider } from "react-redux";
 import store from "./store";
+import { API_BASE_URL } from "./config/config.js";
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
-axios.defaults.baseURL = "http://localhost:9000";
+axios.defaults.baseURL = API_BASE_URL;
 
 root.render(
   <React.StrictMode>

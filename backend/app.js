@@ -19,7 +19,7 @@ const port = process.env.PORT || 9000;
 const corsOptions = {
   origin: isProduction 
     ? [process.env.FRONTEND_URL, process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://your-frontend-domain.vercel.app']
-    : [process.env.FRONTEND_URL, 'http://127.0.0.1:3000', 'http://localhost:3000'],
+    : ['http://127.0.0.1:3000', 'http://localhost:3000', process.env.FRONTEND_URL].filter(Boolean),
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
@@ -94,7 +94,8 @@ app.use((req, res) => {
 // Connect to MongoDB and start server
 const startServer = async () => {
   try {
-    const mongoUri = `mongodb+srv://Dhwip:${process.env.pass}@cluster0.qrxo2.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
+    const mongoUri = process.env.MONGODB_URI || 
+      `mongodb+srv://Dhwip:${process.env.DB_PASSWORD || process.env.pass}@cluster0.qrxo2.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
     
     await mongoose.connect(mongoUri, {
       useNewUrlParser: true,
